@@ -37,7 +37,7 @@ import bisq.core.trade.protocol.tasks.buyer_as_taker.BuyerAsTakerSignAndPublishD
 import bisq.core.trade.protocol.tasks.maker.MakerCreateAndSignContract;
 import bisq.core.trade.protocol.tasks.maker.MakerProcessDepositTxPublishedMessage;
 import bisq.core.trade.protocol.tasks.maker.MakerProcessPayDepositRequest;
-import bisq.core.trade.protocol.tasks.maker.MakerSendPublishDepositTxRequest;
+import bisq.core.trade.protocol.tasks.maker.MakerSendCompleteDepositTxRequest;
 import bisq.core.trade.protocol.tasks.maker.MakerSetupDepositTxListener;
 import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerAccount;
 import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerFeePayment;
@@ -46,10 +46,10 @@ import bisq.core.trade.protocol.tasks.seller.SellerProcessCounterCurrencyTransfe
 import bisq.core.trade.protocol.tasks.seller.SellerSendPayoutTxPublishedMessage;
 import bisq.core.trade.protocol.tasks.seller.SellerSignAndFinalizePayoutTx;
 import bisq.core.trade.protocol.tasks.seller_as_maker.SellerAsMakerCreatesAndSignsDepositTx;
+import bisq.core.trade.protocol.tasks.seller_as_taker.SellerAsTakerCompletesDepositTx;
 import bisq.core.trade.protocol.tasks.seller_as_taker.SellerAsTakerCreatesDepositTxInputs;
-import bisq.core.trade.protocol.tasks.seller_as_taker.SellerAsTakerSignAndPublishDepositTx;
 import bisq.core.trade.protocol.tasks.taker.CreateTakerFeeTx;
-import bisq.core.trade.protocol.tasks.taker.TakerProcessPublishDepositTxRequest;
+import bisq.core.trade.protocol.tasks.taker.TakerProcessCompleteDepositTxRequest;
 import bisq.core.trade.protocol.tasks.taker.TakerSelectMediator;
 import bisq.core.trade.protocol.tasks.taker.TakerSendDepositTxPublishedMessage;
 import bisq.core.trade.protocol.tasks.taker.TakerSendPayDepositRequest;
@@ -113,7 +113,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         MakerCreateAndSignContract.class,
                         BuyerAsMakerCreatesAndSignsDepositTx.class,
                         MakerSetupDepositTxListener.class,
-                        MakerSendPublishDepositTxRequest.class,
+                        MakerSendCompleteDepositTxRequest.class,
 
                         MakerProcessDepositTxPublishedMessage.class,
                         MakerVerifyTakerAccount.class,
@@ -136,12 +136,12 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         SellerAsTakerCreatesDepositTxInputs.class,
                         TakerSendPayDepositRequest.class,
 
-                        TakerProcessPublishDepositTxRequest.class,
+                        TakerProcessCompleteDepositTxRequest.class,
                         CheckIfPeerIsBanned.class,
                         TakerVerifyMakerAccount.class,
                         TakerVerifyMakerFeePayment.class,
                         TakerVerifyAndSignContract.class,
-                        SellerAsTakerSignAndPublishDepositTx.class,
+                        SellerAsTakerCompletesDepositTx.class,
                         TakerSendDepositTxPublishedMessage.class,
 
                         SellerProcessCounterCurrencyTransferStartedMessage.class,
@@ -163,7 +163,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         BuyerAsTakerCreatesDepositTxInputs.class,
                         TakerSendPayDepositRequest.class,
 
-                        TakerProcessPublishDepositTxRequest.class,
+                        TakerProcessCompleteDepositTxRequest.class,
                         CheckIfPeerIsBanned.class,
                         TakerVerifyMakerAccount.class,
                         TakerVerifyMakerFeePayment.class,
@@ -187,7 +187,7 @@ public class DebugView extends InitializableView<GridPane, Void> {
                         MakerCreateAndSignContract.class,
                         SellerAsMakerCreatesAndSignsDepositTx.class,
                         MakerSetupDepositTxListener.class,
-                        MakerSendPublishDepositTxRequest.class,
+                        MakerSendCompleteDepositTxRequest.class,
 
                         MakerProcessDepositTxPublishedMessage.class,
                         PublishTradeStatistics.class,

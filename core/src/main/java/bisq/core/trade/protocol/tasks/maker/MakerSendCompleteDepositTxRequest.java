@@ -21,7 +21,7 @@ import bisq.core.btc.model.AddressEntry;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.payment.payload.PaymentAccountPayload;
 import bisq.core.trade.Trade;
-import bisq.core.trade.messages.PublishDepositTxRequest;
+import bisq.core.trade.messages.CompleteDepositTxRequest;
 import bisq.core.trade.protocol.tasks.TradeTask;
 
 import bisq.network.p2p.NodeAddress;
@@ -41,9 +41,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
-public class MakerSendPublishDepositTxRequest extends TradeTask {
+public class MakerSendCompleteDepositTxRequest extends TradeTask {
     @SuppressWarnings({"WeakerAccess", "unused"})
-    public MakerSendPublishDepositTxRequest(TaskRunner taskHandler, Trade trade) {
+    public MakerSendCompleteDepositTxRequest(TaskRunner taskHandler, Trade trade) {
         super(taskHandler, trade);
     }
 
@@ -70,7 +70,7 @@ public class MakerSendPublishDepositTxRequest extends TradeTask {
 
             byte[] sig = Sig.sign(processModel.getKeyRing().getSignatureKeyPair().getPrivate(), preparedDepositTx);
 
-            PublishDepositTxRequest message = new PublishDepositTxRequest(
+            CompleteDepositTxRequest message = new CompleteDepositTxRequest(
                     processModel.getOfferId(),
                     paymentAccountPayload,
                     processModel.getAccountId(),
