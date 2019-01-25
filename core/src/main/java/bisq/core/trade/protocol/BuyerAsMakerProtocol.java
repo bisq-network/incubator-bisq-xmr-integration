@@ -22,6 +22,7 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.messages.DepositTxPublishedMessage;
 import bisq.core.trade.messages.PayDepositRequest;
 import bisq.core.trade.messages.PayoutTxPublishedMessage;
+import bisq.core.trade.messages.SignTLPayoutTxMessage;
 import bisq.core.trade.messages.TradeMessage;
 import bisq.core.trade.protocol.tasks.CheckIfPeerIsBanned;
 import bisq.core.trade.protocol.tasks.PublishTradeStatistics;
@@ -30,11 +31,14 @@ import bisq.core.trade.protocol.tasks.buyer.BuyerProcessPayoutTxPublishedMessage
 import bisq.core.trade.protocol.tasks.buyer.BuyerSendCounterCurrencyTransferStartedMessage;
 import bisq.core.trade.protocol.tasks.buyer.BuyerSetupPayoutTxListener;
 import bisq.core.trade.protocol.tasks.buyer_as_maker.BuyerAsMakerCreatesAndSignsDepositTx;
+import bisq.core.trade.protocol.tasks.buyer_as_maker.BuyerAsMakerProcessSignTLPayoutTxMessage;
+import bisq.core.trade.protocol.tasks.buyer_as_maker.BuyerAsMakerSendsPublishDepositTxMessage;
 import bisq.core.trade.protocol.tasks.buyer_as_maker.BuyerAsMakerSignPayoutTx;
+import bisq.core.trade.protocol.tasks.buyer_as_maker.BuyerAsMakerSignsTLPayoutTx;
 import bisq.core.trade.protocol.tasks.maker.MakerCreateAndSignContract;
 import bisq.core.trade.protocol.tasks.maker.MakerProcessDepositTxPublishedMessage;
 import bisq.core.trade.protocol.tasks.maker.MakerProcessPayDepositRequest;
-import bisq.core.trade.protocol.tasks.maker.MakerSendPublishDepositTxRequest;
+import bisq.core.trade.protocol.tasks.maker.MakerSendCompleteDepositTxRequest;
 import bisq.core.trade.protocol.tasks.maker.MakerSetupDepositTxListener;
 import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerAccount;
 import bisq.core.trade.protocol.tasks.maker.MakerVerifyTakerFeePayment;
@@ -136,7 +140,7 @@ public class BuyerAsMakerProtocol extends TradeProtocol implements BuyerProtocol
                 MakerCreateAndSignContract.class,
                 BuyerAsMakerCreatesAndSignsDepositTx.class,
                 MakerSetupDepositTxListener.class,
-                MakerSendPublishDepositTxRequest.class
+                MakerSendCompleteDepositTxRequest.class
         );
         // We don't use a timeout here because if the DepositTxPublishedMessage does not arrive we
         // get the deposit tx set at MakerSetupDepositTxListener once it is seen in the bitcoin network
@@ -147,6 +151,22 @@ public class BuyerAsMakerProtocol extends TradeProtocol implements BuyerProtocol
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Incoming message handling
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    private void handle(SignTLPayoutTxMessage tradeMessage, NodeAddress peerNodeAddress) {
+        processModel.setTradeMessage(tradeMessage);
+        processModel.setTempTradingPeerNodeAddress(peerNodeAddress);
+
+        TradeTaskRunner taskRunner = new TradeTaskRunner(buyerAsMakerTrade,
+                () -> handleTaskRunnerSuccess(tradeMessage, "handle SignTLPayoutTxMessage"),
+                errorMessage -> handleTaskRunnerFault(tradeMessage, errorMessage));
+
+        taskRunner.addTasks(
+                BuyerAsMakerProcessSignTLPayoutTxMessage.class,
+                BuyerAsMakerSignsTLPayoutTx.class,
+                BuyerAsMakerSendsPublishDepositTxMessage.class
+        );
+        taskRunner.run();
+    }
 
     private void handle(DepositTxPublishedMessage tradeMessage, NodeAddress peerNodeAddress) {
         processModel.setTradeMessage(tradeMessage);
@@ -228,7 +248,9 @@ public class BuyerAsMakerProtocol extends TradeProtocol implements BuyerProtocol
         log.info("Received {} from {} with tradeId {} and uid {}",
                 tradeMessage.getClass().getSimpleName(), sender, tradeMessage.getTradeId(), tradeMessage.getUid());
 
-        if (tradeMessage instanceof DepositTxPublishedMessage) {
+        if (tradeMessage instanceof SignTLPayoutTxMessage) {
+            handle((SignTLPayoutTxMessage) tradeMessage, sender);
+        } else if (tradeMessage instanceof DepositTxPublishedMessage) {
             handle((DepositTxPublishedMessage) tradeMessage, sender);
         } else if (tradeMessage instanceof PayoutTxPublishedMessage) {
             handle((PayoutTxPublishedMessage) tradeMessage, sender);

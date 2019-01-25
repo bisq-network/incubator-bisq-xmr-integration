@@ -29,12 +29,12 @@ import lombok.Value;
 //TODO implement
 @EqualsAndHashCode(callSuper = true)
 @Value
-public final class PublishDepositTxRequest extends TradeMessage {
+public final class SignTLPayoutTxMessage extends TradeMessage {
     private final NodeAddress senderNodeAddress;
 
-    public PublishDepositTxRequest(String tradeId,
-                                   NodeAddress senderNodeAddress,
-                                   String uid) {
+    public SignTLPayoutTxMessage(String tradeId,
+                                 NodeAddress senderNodeAddress,
+                                 String uid) {
         this(tradeId,
                 senderNodeAddress,
                 uid,
@@ -45,10 +45,10 @@ public final class PublishDepositTxRequest extends TradeMessage {
     // PROTO BUFFER
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private PublishDepositTxRequest(String tradeId,
-                                    NodeAddress senderNodeAddress,
-                                    String uid,
-                                    int messageVersion) {
+    private SignTLPayoutTxMessage(String tradeId,
+                                  NodeAddress senderNodeAddress,
+                                  String uid,
+                                  int messageVersion) {
         super(messageVersion, tradeId, uid);
         this.senderNodeAddress = senderNodeAddress;
     }
@@ -57,15 +57,15 @@ public final class PublishDepositTxRequest extends TradeMessage {
     @Override
     public PB.NetworkEnvelope toProtoNetworkEnvelope() {
         return getNetworkEnvelopeBuilder()
-                .setPublishDepositTxRequest(PB.PublishDepositTxRequest.newBuilder()
+                .setSignTLPayoutTxMessage(PB.SignTLPayoutTxMessage.newBuilder()
                         .setTradeId(tradeId)
                         .setSenderNodeAddress(senderNodeAddress.toProtoMessage())
                         .setUid(uid))
                 .build();
     }
 
-    public static PublishDepositTxRequest fromProto(PB.PublishDepositTxRequest proto, int messageVersion) {
-        return new PublishDepositTxRequest(proto.getTradeId(),
+    public static SignTLPayoutTxMessage fromProto(PB.SignTLPayoutTxMessage proto, int messageVersion) {
+        return new SignTLPayoutTxMessage(proto.getTradeId(),
                 NodeAddress.fromProto(proto.getSenderNodeAddress()),
                 proto.getUid(),
                 messageVersion);
@@ -74,7 +74,7 @@ public final class PublishDepositTxRequest extends TradeMessage {
 
     @Override
     public String toString() {
-        return "PublishDepositTxRequest{" +
+        return "DepositTxPublishedMessage{" +
                 ",\n     senderNodeAddress=" + senderNodeAddress +
                 ",\n     uid='" + uid + '\'' +
                 "\n} " + super.toString();
