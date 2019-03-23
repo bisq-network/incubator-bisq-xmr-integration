@@ -55,6 +55,7 @@ import bisq.core.dao.state.model.governance.RoleProposal;
 import bisq.core.dao.state.model.governance.Vote;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
+import bisq.core.user.Preferences;
 import bisq.core.util.BsqFormatter;
 import bisq.core.util.validation.InputValidator;
 import bisq.core.util.validation.UrlInputValidator;
@@ -96,7 +97,7 @@ import javax.annotation.Nullable;
 import static bisq.desktop.util.FormBuilder.*;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-@SuppressWarnings("ConstantConditions")
+@SuppressWarnings({"ConstantConditions", "StatementWithEmptyBody"})
 @Slf4j
 public class ProposalDisplay {
     private final GridPane gridPane;
@@ -107,6 +108,7 @@ public class ProposalDisplay {
     @Nullable
     private final ChangeParamValidator changeParamValidator;
     private final Navigation navigation;
+    private final Preferences preferences;
 
     @Nullable
     private TextField proposalFeeTextField, comboBoxValueTextField, requiredBondForRoleTextField;
@@ -127,6 +129,7 @@ public class ProposalDisplay {
     @Getter
     private int gridRow;
     private HyperlinkWithIcon linkHyperlinkWithIcon;
+    private HyperlinkWithIcon txHyperlinkWithIcon;
     private int gridRowStartIndex;
     private final List<Runnable> inputChangedListeners = new ArrayList<>();
     @Getter
@@ -141,13 +144,18 @@ public class ProposalDisplay {
     private int titledGroupBgRowSpan;
     private VBox linkWithIconContainer, comboBoxValueContainer, myVoteBox, voteResultBox;
 
-    public ProposalDisplay(GridPane gridPane, BsqFormatter bsqFormatter, DaoFacade daoFacade,
-                           @Nullable ChangeParamValidator changeParamValidator, Navigation navigation) {
+    public ProposalDisplay(GridPane gridPane,
+                           BsqFormatter bsqFormatter,
+                           DaoFacade daoFacade,
+                           @Nullable ChangeParamValidator changeParamValidator,
+                           Navigation navigation,
+                           @Nullable Preferences preferences) {
         this.gridPane = gridPane;
         this.bsqFormatter = bsqFormatter;
         this.daoFacade = daoFacade;
         this.changeParamValidator = changeParamValidator;
         this.navigation = navigation;
+        this.preferences = preferences;
 
         // focusOutListener = observable -> inputChangedListeners.forEach(Runnable::run);
 
@@ -219,6 +227,14 @@ public class ProposalDisplay {
         linkWithIconContainer.setVisible(false);
         linkWithIconContainer.setManaged(false);
 
+        if (!isMakeProposalScreen) {
+            Tuple3<Label, HyperlinkWithIcon, VBox> uidTuple = addTopLabelHyperlinkWithIcon(gridPane, ++gridRow,
+                    Res.get("dao.proposal.display.txId"), "", "", 0);
+            txHyperlinkWithIcon = uidTuple.second;
+            // TODO HyperlinkWithIcon does not scale automatically (button base, -> make anchorPane as base)
+            txHyperlinkWithIcon.prefWidthProperty().bind(nameTextField.widthProperty());
+        }
+
         int comboBoxValueTextFieldIndex = -1;
         switch (proposalType) {
             case COMPENSATION_REQUEST:
@@ -285,7 +301,10 @@ public class ProposalDisplay {
                         Res.get("dao.proposal.display.bondedRoleComboBox.label"));
                 comboBoxValueTextFieldIndex = gridRow;
                 checkNotNull(bondedRoleTypeComboBox, "bondedRoleTypeComboBox must not be null");
-                bondedRoleTypeComboBox.setItems(FXCollections.observableArrayList(BondedRoleType.values()));
+                List<BondedRoleType> bondedRoleTypes = Arrays.stream(BondedRoleType.values())
+                        .filter(e -> e != BondedRoleType.UNDEFINED)
+                        .collect(Collectors.toList());
+                bondedRoleTypeComboBox.setItems(FXCollections.observableArrayList(bondedRoleTypes));
                 bondedRoleTypeComboBox.setConverter(new StringConverter<>() {
                     @Override
                     public String toString(BondedRoleType bondedRoleType) {
@@ -303,7 +322,7 @@ public class ProposalDisplay {
 
                 requiredBondForRoleListener = (observable, oldValue, newValue) -> {
                     if (newValue != null) {
-                        requiredBondForRoleTextField.setText(bsqFormatter.formatCoinWithCode(Coin.valueOf(newValue.getRequiredBond())));
+                        requiredBondForRoleTextField.setText(bsqFormatter.formatCoinWithCode(Coin.valueOf(daoFacade.getRequiredBond(newValue))));
                     }
                 };
                 bondedRoleTypeComboBox.getSelectionModel().selectedItemProperty().addListener(requiredBondForRoleListener);
@@ -422,9 +441,9 @@ public class ProposalDisplay {
                     Res.get("dao.proposal.voteResult.failed");
             ProposalVoteResult proposalVoteResult = evaluatedProposal.getProposalVoteResult();
             String threshold = (proposalVoteResult.getThreshold() / 100D) + "%";
-            String requiredThreshold = (evaluatedProposal.getRequiredThreshold() / 100D) + "%";
+            String requiredThreshold = (daoFacade.getRequiredThreshold(evaluatedProposal.getProposal()) * 100D) + "%";
             String quorum = bsqFormatter.formatCoinWithCode(Coin.valueOf(proposalVoteResult.getQuorum()));
-            String requiredQuorum = bsqFormatter.formatCoinWithCode(Coin.valueOf(evaluatedProposal.getRequiredQuorum()));
+            String requiredQuorum = bsqFormatter.formatCoinWithCode(daoFacade.getRequiredQuorum(evaluatedProposal.getProposal()));
             String summary = Res.get("dao.proposal.voteResult.summary", result,
                     threshold, requiredThreshold, quorum, requiredQuorum);
             voteResultTextField.setText(summary);
@@ -477,6 +496,12 @@ public class ProposalDisplay {
             linkHyperlinkWithIcon.setOnAction(e -> GUIUtil.openWebPage(proposal.getLink()));
         }
 
+        if (txHyperlinkWithIcon != null) {
+            txHyperlinkWithIcon.setText(proposal.getTxId());
+            txHyperlinkWithIcon.setOnAction(e ->
+                    GUIUtil.openTxInBsqBlockExplorer(proposal.getTxId(), preferences));
+        }
+
         if (proposal instanceof CompensationProposal) {
             CompensationProposal compensationProposal = (CompensationProposal) proposal;
             checkNotNull(requestedBsqTextField, "requestedBsqTextField must not be null");
@@ -498,7 +523,8 @@ public class ProposalDisplay {
             Role role = roleProposal.getRole();
             bondedRoleTypeComboBox.getSelectionModel().select(role.getBondedRoleType());
             comboBoxValueTextField.setText(bondedRoleTypeComboBox.getConverter().toString(role.getBondedRoleType()));
-            requiredBondForRoleTextField.setText(bsqFormatter.formatCoin(Coin.valueOf(role.getBondedRoleType().getRequiredBond())));
+            requiredBondForRoleTextField.setText(bsqFormatter.formatCoin(Coin.valueOf(daoFacade.getRequiredBond(roleProposal))));
+            // TODO maybe show also unlock time?
         } else if (proposal instanceof ConfiscateBondProposal) {
             ConfiscateBondProposal confiscateBondProposal = (ConfiscateBondProposal) proposal;
             checkNotNull(confiscateBondComboBox, "confiscateBondComboBox must not be null");
@@ -508,7 +534,7 @@ public class ProposalDisplay {
                         comboBoxValueTextField.setText(confiscateBondComboBox.getConverter().toString(bond));
                         comboBoxValueTextField.setOnMouseClicked(e ->
                                 navigation.navigateToWithData(bond, MainView.class, DaoView.class, BondingView.class,
-                                BondsView.class));
+                                        BondsView.class));
                         comboBoxValueTextField.getStyleClass().addAll("hyperlink", "show-hand");
                     });
         } else if (proposal instanceof GenericProposal) {
@@ -606,10 +632,6 @@ public class ProposalDisplay {
 
     public int incrementAndGetGridRow() {
         return ++gridRow;
-    }
-
-    public int getGridRow() {
-        return gridRow;
     }
 
     @SuppressWarnings("Duplicates")

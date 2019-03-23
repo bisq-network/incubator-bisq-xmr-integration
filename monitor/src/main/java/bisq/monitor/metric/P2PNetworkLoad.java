@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -32,14 +33,13 @@ import org.springframework.core.env.PropertySource;
 
 import bisq.common.Clock;
 import bisq.common.app.Capabilities;
-import bisq.common.app.Version;
+import bisq.common.app.Capability;
 import bisq.common.proto.network.NetworkEnvelope;
 import bisq.common.proto.network.NetworkProtoResolver;
 import bisq.core.app.BisqEnvironment;
 import bisq.core.btc.BaseCurrencyNetwork;
 import bisq.core.btc.BtcOptionKeys;
 import bisq.core.network.p2p.seed.DefaultSeedNodeRepository;
-import bisq.core.network.p2p.seed.SeedNodeAddressLookup;
 import bisq.core.proto.network.CoreNetworkProtoResolver;
 import bisq.core.proto.persistable.CorePersistenceProtoResolver;
 import bisq.monitor.AvailableTor;
@@ -74,7 +74,7 @@ public class P2PNetworkLoad extends Metric implements MessageListener, SetupList
     private static final String MAX_CONNECTIONS = "run.maxConnections";
     private static final String HISTORY_SIZE = "run.historySize";
     private NetworkNode networkNode;
-    private final File torHiddenServiceDir = new File("monitor/work/metric_p2pNetworkLoad");
+    private final File torHiddenServiceDir = new File("metric_" + getName());
     private final ThreadGate hsReady = new ThreadGate();
     private final Map<String, Counter> buckets = new ConcurrentHashMap<>();
 
@@ -138,9 +138,7 @@ public class P2PNetworkLoad extends Metric implements MessageListener, SetupList
 
         history = Collections.synchronizedMap(new FixedSizeHistoryTracker(Integer.parseInt(configuration.getProperty(HISTORY_SIZE, "200"))));
 
-        // add all capabilities
-        if(!Capabilities.getSupportedCapabilities().contains(Capabilities.Capability.DAO_FULL_NODE.ordinal()))
-            Capabilities.addCapability(Capabilities.Capability.DAO_FULL_NODE.ordinal());
+        Capabilities.app.addAll(Capability.DAO_FULL_NODE);
     }
 
     @Override
@@ -162,7 +160,6 @@ public class P2PNetworkLoad extends Metric implements MessageListener, SetupList
 
             // boot up P2P node
             File storageDir = torHiddenServiceDir;
-            String seedNodes = "";
             try {
                 BisqEnvironment environment = new BisqEnvironment(new PropertySource<String>("name") {
 
@@ -177,8 +174,7 @@ public class P2PNetworkLoad extends Metric implements MessageListener, SetupList
                 NetworkProtoResolver networkProtoResolver = new CoreNetworkProtoResolver();
                 CorePersistenceProtoResolver persistenceProtoResolver = new CorePersistenceProtoResolver(null,
                         networkProtoResolver, storageDir);
-                DefaultSeedNodeRepository seedNodeRepository = new DefaultSeedNodeRepository(
-                        new SeedNodeAddressLookup(environment, false, Version.getBaseCurrencyNetwork(), null, seedNodes));
+                DefaultSeedNodeRepository seedNodeRepository = new DefaultSeedNodeRepository(environment, null);
                 PeerManager peerManager = new PeerManager(networkNode, seedNodeRepository, new Clock(),
                         persistenceProtoResolver, maxConnections, storageDir);
 

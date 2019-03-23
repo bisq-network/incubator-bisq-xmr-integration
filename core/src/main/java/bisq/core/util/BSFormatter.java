@@ -51,6 +51,7 @@ import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
@@ -482,9 +483,18 @@ public class BSFormatter {
     }
 
     public String formatDateTime(Date date) {
-        return formatDateTime(date,
-                DateFormat.getDateInstance(DateFormat.DEFAULT, getLocale()),
-                DateFormat.getTimeInstance(DateFormat.DEFAULT, getLocale()));
+        return formatDateTime(date, true);
+    }
+
+    public String formatDateTime(Date date, boolean useLocaleAndLocalTimezone) {
+        Locale locale = useLocaleAndLocalTimezone ? getLocale() : Locale.US;
+        DateFormat dateInstance = DateFormat.getDateInstance(DateFormat.DEFAULT, locale);
+        DateFormat timeInstance = DateFormat.getTimeInstance(DateFormat.DEFAULT, locale);
+        if (!useLocaleAndLocalTimezone) {
+            dateInstance.setTimeZone(TimeZone.getTimeZone("UTC"));
+            timeInstance.setTimeZone(TimeZone.getTimeZone("UTC"));
+        }
+        return formatDateTime(date, dateInstance, timeInstance);
     }
 
     public String formatDateTime(Date date, DateFormat dateFormatter, DateFormat timeFormatter) {
@@ -546,7 +556,7 @@ public class BSFormatter {
         String input = percentString.replace("%", "");
         input = cleanDoubleInput(input);
         double value = Double.parseDouble(input);
-        return value / 100d;
+        return MathUtils.roundDouble(value / 100d, 2);
     }
 
     public long parsePriceStringToLong(String currencyCode, String amount, int precision) {

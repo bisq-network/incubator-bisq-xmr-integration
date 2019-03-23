@@ -40,6 +40,7 @@ import bisq.core.btc.exceptions.WalletException;
 import bisq.core.btc.listeners.BsqBalanceListener;
 import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.dao.DaoFacade;
+import bisq.core.dao.governance.blindvote.BlindVoteConsensus;
 import bisq.core.dao.governance.myvote.MyVote;
 import bisq.core.dao.governance.proposal.param.ChangeParamValidator;
 import bisq.core.dao.state.DaoStateListener;
@@ -177,8 +178,6 @@ public class ProposalsView extends ActivatableView<GridPane, Void> implements Bs
     public void initialize() {
         super.initialize();
 
-        root.getStyleClass().add("vote-root");
-
         gridRow = phasesView.addGroup(root, gridRow);
 
         proposalDisplayGridPane = new GridPane();
@@ -210,14 +209,16 @@ public class ProposalsView extends ActivatableView<GridPane, Void> implements Bs
         stakeInputTextField.textProperty().addListener(stakeListener);
         voteButton.setOnAction(e -> onVote());
 
-        onUpdateBalances(bsqWalletService.getAvailableBalance(),
+        onUpdateBalances(bsqWalletService.getAvailableConfirmedBalance(),
                 bsqWalletService.getAvailableNonBsqBalance(),
                 bsqWalletService.getUnverifiedBalance(),
+                bsqWalletService.getUnconfirmedChangeBalance(),
                 bsqWalletService.getLockedForVotingBalance(),
                 bsqWalletService.getLockupBondsBalance(),
                 bsqWalletService.getUnlockingBondsBalance());
 
         updateListItems();
+        GUIUtil.setFitToRowsForTableView(tableView, 38, 28, 2, 6);
         updateViews();
     }
 
@@ -255,16 +256,19 @@ public class ProposalsView extends ActivatableView<GridPane, Void> implements Bs
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public void onUpdateBalances(Coin confirmedBalance,
+    public void onUpdateBalances(Coin availableConfirmedBalance,
                                  Coin availableNonBsqBalance,
-                                 Coin pendingBalance,
+                                 Coin unverifiedBalance,
+                                 Coin unconfirmedChangeBalance,
                                  Coin lockedForVotingBalance,
                                  Coin lockupBondsBalance,
                                  Coin unlockingBondsBalance) {
-        if (isBlindVotePhaseButNotLastBlock())
+        Coin blindVoteFee = BlindVoteConsensus.getFee(daoStateService, daoStateService.getChainHeight());
+        if (isBlindVotePhaseButNotLastBlock()) {
+            Coin availableForVoting = availableConfirmedBalance.subtract(blindVoteFee);
             stakeInputTextField.setPromptText(Res.get("dao.proposal.myVote.stake.prompt",
-                    bsqFormatter.formatCoinWithCode(confirmedBalance)));
-        else
+                    bsqFormatter.formatCoinWithCode(availableForVoting)));
+        } else
             stakeInputTextField.setPromptText("");
     }
 
@@ -274,7 +278,7 @@ public class ProposalsView extends ActivatableView<GridPane, Void> implements Bs
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public void onParseTxsCompleteAfterBatchProcessing(Block block) {
+    public void onParseBlockCompleteAfterBatchProcessing(Block block) {
         updateViews();
     }
 
@@ -322,9 +326,7 @@ public class ProposalsView extends ActivatableView<GridPane, Void> implements Bs
             onSelectProposal(null);
         }
 
-        GUIUtil.setFitToRowsForTableView(tableView, 37, 28, 2, 4);
-        tableView.layout();
-        root.layout();
+        GUIUtil.setFitToRowsForTableView(tableView, 38, 28, 2, 6);
     }
 
     private void createAllFieldsOnProposalDisplay(Proposal proposal, @Nullable Ballot ballot,
@@ -498,7 +500,7 @@ public class ProposalsView extends ActivatableView<GridPane, Void> implements Bs
         Coin stake = bsqFormatter.parseToCoin(stakeInputTextField.getText());
         try {
             // We create a dummy tx to get the miningFee for displaying it at the confirmation popup
-            Tuple2<Coin, Integer> miningFeeAndTxSize = daoFacade.getMiningFeeAndTxSize(stake);
+            Tuple2<Coin, Integer> miningFeeAndTxSize = daoFacade.getBlindVoteMiningFeeAndTxSize(stake);
             Coin miningFee = miningFeeAndTxSize.first;
             int txSize = miningFeeAndTxSize.second;
             Coin blindVoteFee = daoFacade.getBlindVoteFeeForCycle();
@@ -523,6 +525,7 @@ public class ProposalsView extends ActivatableView<GridPane, Void> implements Bs
                 }, exception -> {
                     voteButtonBusyAnimation.stop();
                     voteButtonInfoLabel.setText("");
+                    updateViews();
                     new Popup<>().warning(exception.toString()).show();
                 });
 
@@ -677,7 +680,7 @@ public class ProposalsView extends ActivatableView<GridPane, Void> implements Bs
 
     private void createEmptyProposalDisplay() {
         proposalDisplay = new ProposalDisplay(proposalDisplayGridPane, bsqFormatter, daoFacade,
-                changeParamValidator, navigation);
+                changeParamValidator, navigation, preferences);
         proposalDisplayView = proposalDisplay.getView();
         GridPane.setMargin(proposalDisplayView, new Insets(0, -10, 0, -10));
         GridPane.setRowIndex(proposalDisplayView, ++gridRow);
@@ -750,14 +753,14 @@ public class ProposalsView extends ActivatableView<GridPane, Void> implements Bs
                             public void updateItem(final ProposalsListItem item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null)
-                                    setText(bsqFormatter.formatDateTime(item.getProposal().getCreationDate()));
+                                    setText(bsqFormatter.formatDateTime(item.getProposal().getCreationDateAsDate()));
                                 else
                                     setText("");
                             }
                         };
                     }
                 });
-        column.setComparator(Comparator.comparing(o3 -> o3.getProposal().getCreationDate()));
+        column.setComparator(Comparator.comparing(o3 -> o3.getProposal().getCreationDateAsDate()));
         column.setSortType(TableColumn.SortType.DESCENDING);
         tableView.getColumns().add(column);
         tableView.getSortOrder().add(column);
