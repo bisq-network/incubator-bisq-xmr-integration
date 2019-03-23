@@ -11,7 +11,6 @@
 //
 // See https://github.com/signalapp/gradle-witness#using-witness for further details.
 
-
 dependencyVerification {
     verify = [
         'org.controlsfx:controlsfx:b98f1c9507c05600f80323674b33d15674926c71b0116f70085b62bdacf1e573',
@@ -47,13 +46,13 @@ dependencyVerification {
         'com.googlecode.json-simple:json-simple:4e69696892b88b41c55d49ab2fdcc21eead92bf54acc588c0050596c3b75199c',
         'org.springframework:spring-core:c451e8417adb2ffb2445636da5e44a2f59307c4100037a1fe387c3fba4f29b52',
         'ch.qos.logback:logback-classic:e66efc674e94837344bc5b748ff510c37a44eeff86cbfdbf9e714ef2eb374013',
-        'com.github.bisq-network.bitcoinj:bitcoinj-core:d148d9577cf96540f7f5367011f7626ff9c9f148f0bf903b541740d480652969',
         'org.slf4j:slf4j-api:18c4a0095d5c1da6b817592e767bb23d29dd2f560ad74df75ff3961dbde25b79',
         'ch.qos.logback:logback-core:4cd46fa17d77057b39160058df2f21ebbc2aded51d0edcc25d2c1cecc042a005',
         'com.google.code.findbugs:jsr305:766ad2a0783f2687962c8ad74ceecc38a28b9f72a2d085ee438b7813e928d0c7',
         'org.reflections:reflections:cca88428f8a8919df885105833d45ff07bd26f985f96ee55690551216b58b4a1',
         'com.google.guava:guava:36a666e3b71ae7f0f0dca23654b67e086e6c93d192f60ba5dfd5519db6c288c8',
         'com.google.inject:guice:9b9df27a5b8c7864112b4137fd92b36c3f1395bfe57be42fedf2f520ead1a93e',
+        'com.github.bisq-network.bitcoinj:bitcoinj-core:e47a7224dbdf02446d0b471f0148fced607761c0a58f7cd0c5abffab9a5b32b0',
         'com.github.JesusMcCloud.netlayer:tor:61ee2bfe19f5c30999df1f636706fafee284921f4ef59d472ec52400e0f863f2',
         'org.jetbrains.kotlin:kotlin-stdlib-jdk8:193ab7813e4d249f2ea4fc1b968fea8c2126bcbeeb5d6127050ce1b93dbaa7c2',
         'io.github.microutils:kotlin-logging:4992504fd3c6ecdf9ed10874b9508e758bb908af9e9d7af19a61e9afb6b7e27a',
@@ -85,9 +84,9 @@ dependencyVerification {
         'org.glassfish.hk2:hk2-utils:5edb176086ad0be1d4abbc0a1d26d519d088a01ee24f9ee064c657895a86e3ee',
         'javax.inject:javax.inject:91c77044a50c481636c32d916fd89c9118a72195390452c81065080f957de7ff',
         'aopalliance:aopalliance:0addec670fedcd3f113c5c8091d783280d23f75e3acb841b61a9cdb079376a08',
-        'com.lambdaworks:scrypt:9a82d218099fb14c10c0e86e7eefeebd8c104de920acdc47b8b4b7a686fb73b4',
         'com.madgag.spongycastle:core:8d6240b974b0aca4d3da9c7dd44d42339d8a374358aca5fc98e50a995764511f',
         'net.jcip:jcip-annotations:be5805392060c71474bf6c9a67a099471274d30b83eef84bfc4e0889a4f1dcc0',
+        'com.lambdaworks:scrypt:9a82d218099fb14c10c0e86e7eefeebd8c104de920acdc47b8b4b7a686fb73b4',
         'org.bitcoinj:orchid:f836325cfa0466a011cb755c9b0fee6368487a2352eb45f4306ad9e4c18de080',
         'com.squareup.okhttp:okhttp:b4c943138fcef2bcc9d2006b2250c4aabbedeafc5947ed7c0af7fd103ceb2707',
         'org.eclipse.jetty:jetty-security:c4102cdbcbf6becec08b9ab4afbd9979c3f120e8cf45fbdf6be6c3940fe55bf1',

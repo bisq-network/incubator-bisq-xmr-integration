@@ -117,6 +117,6 @@ public class HttpApiServer {
         }
         // TODO how to log that service has been published?
         final HsContainer hsContainer = tor.publishHiddenService("api", 80, bisqEnvironment.getHttpApiPort());
-        log.info("HTTP API Tor hostname: {}", hsContainer.getHostname$tor());
+        log.info("HTTP API Tor hostname: {}", hsContainer.getHostname());
     }
 }
