@@ -71,6 +71,7 @@ public final class TradableList<T extends Tradable> implements PersistableEnvelo
     private TradableList(Storage<TradableList<T>> storage, List<T> list) {
         this.storage = storage;
         this.list.addAll(list);
+        storage.queueUpForSave();
     }
 
     @Override
@@ -106,6 +107,20 @@ public final class TradableList<T extends Tradable> implements PersistableEnvelo
                             log.error("Unknown messageCase. tradable.getMessageCase() = " + tradable.getMessageCase());
                             throw new ProtobufferRuntimeException("Unknown messageCase. tradable.getMessageCase() = " + tradable.getMessageCase());
                     }
+                })
+                // This is a fix for saved failed trades that shouldn't have been saved. The usage of the error message
+                // is was the only way I know to make sure not to remove any trades that should remain.
+                .filter(tradable -> {
+                    if (tradable instanceof Trade) {
+                        Trade trade = (Trade) tradable;
+                        boolean toPurge = trade.getErrorMessage() != null &&
+                                trade.getErrorMessage().startsWith("An error occurred at task: MakerProcessPayDepositRequest\n" +
+                                        "Taker's trade price is too far away from our calculated price based on the market price.");
+                        if (toPurge)
+                            log.info("Purging bad trade record id={}", trade.getId());
+                        return !toPurge;
+                    }
+                    return true;
                 })
                 .collect(Collectors.toList());
 
