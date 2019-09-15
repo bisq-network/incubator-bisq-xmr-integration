@@ -19,13 +19,6 @@ package bisq.core.proto.network;
 
 import bisq.core.alert.Alert;
 import bisq.core.alert.PrivateNotificationMessage;
-import bisq.core.arbitration.Arbitrator;
-import bisq.core.arbitration.Mediator;
-import bisq.core.arbitration.messages.DisputeCommunicationMessage;
-import bisq.core.arbitration.messages.DisputeResultMessage;
-import bisq.core.arbitration.messages.OpenNewDisputeMessage;
-import bisq.core.arbitration.messages.PeerOpenedDisputeMessage;
-import bisq.core.arbitration.messages.PeerPublishedDisputePayoutTxMessage;
 import bisq.core.dao.governance.blindvote.network.messages.RepublishGovernanceDataRequest;
 import bisq.core.dao.governance.proposal.storage.temp.TempProposalPayload;
 import bisq.core.dao.monitoring.network.messages.GetBlindVoteStateHashesRequest;
@@ -45,16 +38,25 @@ import bisq.core.offer.OfferPayload;
 import bisq.core.offer.messages.OfferAvailabilityRequest;
 import bisq.core.offer.messages.OfferAvailabilityResponse;
 import bisq.core.proto.CoreProtoResolver;
+import bisq.core.support.dispute.arbitration.arbitrator.Arbitrator;
+import bisq.core.support.dispute.arbitration.messages.PeerPublishedDisputePayoutTxMessage;
+import bisq.core.support.dispute.mediation.mediator.Mediator;
+import bisq.core.support.dispute.messages.DisputeResultMessage;
+import bisq.core.support.dispute.messages.OpenNewDisputeMessage;
+import bisq.core.support.dispute.messages.PeerOpenedDisputeMessage;
+import bisq.core.support.messages.ChatMessage;
 import bisq.core.trade.messages.CounterCurrencyTransferStartedMessage;
 import bisq.core.trade.messages.DepositTxPublishedMessage;
+import bisq.core.trade.messages.MediatedPayoutTxPublishedMessage;
+import bisq.core.trade.messages.MediatedPayoutTxSignatureMessage;
 import bisq.core.trade.messages.PayDepositRequest;
 import bisq.core.trade.messages.PayoutTxPublishedMessage;
 import bisq.core.trade.messages.PublishDepositTxRequest;
 import bisq.core.trade.statistics.TradeStatistics;
 
 import bisq.network.p2p.AckMessage;
-import bisq.network.p2p.CloseConnectionMessage;
 import bisq.network.p2p.BundleOfEnvelopes;
+import bisq.network.p2p.CloseConnectionMessage;
 import bisq.network.p2p.PrefixedSealedAndSignedMessage;
 import bisq.network.p2p.peers.getdata.messages.GetDataResponse;
 import bisq.network.p2p.peers.getdata.messages.GetUpdatedDataRequest;
@@ -78,14 +80,14 @@ import bisq.common.proto.network.NetworkEnvelope;
 import bisq.common.proto.network.NetworkPayload;
 import bisq.common.proto.network.NetworkProtoResolver;
 
-import io.bisq.generated.protobuffer.PB;
-
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import lombok.extern.slf4j.Slf4j;
 
 // TODO Use ProtobufferException instead of ProtobufferRuntimeException
 @Slf4j
+@Singleton
 public class CoreNetworkProtoResolver extends CoreProtoResolver implements NetworkProtoResolver {
 
     @Inject
@@ -93,7 +95,7 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
     }
 
     @Override
-    public NetworkEnvelope fromProto(PB.NetworkEnvelope proto) throws ProtobufferException {
+    public NetworkEnvelope fromProto(protobuf.NetworkEnvelope proto) throws ProtobufferException {
         if (proto != null) {
             final int messageVersion = proto.getMessageVersion();
             switch (proto.getMessageCase()) {
@@ -142,13 +144,17 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                     return CounterCurrencyTransferStartedMessage.fromProto(proto.getCounterCurrencyTransferStartedMessage(), messageVersion);
                 case PAYOUT_TX_PUBLISHED_MESSAGE:
                     return PayoutTxPublishedMessage.fromProto(proto.getPayoutTxPublishedMessage(), messageVersion);
+                case MEDIATED_PAYOUT_TX_SIGNATURE_MESSAGE:
+                    return MediatedPayoutTxSignatureMessage.fromProto(proto.getMediatedPayoutTxSignatureMessage(), messageVersion);
+                case MEDIATED_PAYOUT_TX_PUBLISHED_MESSAGE:
+                    return MediatedPayoutTxPublishedMessage.fromProto(proto.getMediatedPayoutTxPublishedMessage(), messageVersion);
 
                 case OPEN_NEW_DISPUTE_MESSAGE:
                     return OpenNewDisputeMessage.fromProto(proto.getOpenNewDisputeMessage(), this, messageVersion);
                 case PEER_OPENED_DISPUTE_MESSAGE:
                     return PeerOpenedDisputeMessage.fromProto(proto.getPeerOpenedDisputeMessage(), this, messageVersion);
-                case DISPUTE_COMMUNICATION_MESSAGE:
-                    return DisputeCommunicationMessage.fromProto(proto.getDisputeCommunicationMessage(), messageVersion);
+                case CHAT_MESSAGE:
+                    return ChatMessage.fromProto(proto.getChatMessage(), messageVersion);
                 case DISPUTE_RESULT_MESSAGE:
                     return DisputeResultMessage.fromProto(proto.getDisputeResultMessage(), messageVersion);
                 case PEER_PUBLISHED_DISPUTE_PAYOUT_TX_MESSAGE:
@@ -204,7 +210,7 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
         }
     }
 
-    public NetworkPayload fromProto(PB.StorageEntryWrapper proto) {
+    public NetworkPayload fromProto(protobuf.StorageEntryWrapper proto) {
         if (proto != null) {
             switch (proto.getMessageCase()) {
                 case PROTECTED_MAILBOX_STORAGE_ENTRY:
@@ -221,7 +227,7 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
         }
     }
 
-    public NetworkPayload fromProto(PB.StoragePayload proto) {
+    public NetworkPayload fromProto(protobuf.StoragePayload proto) {
         if (proto != null) {
             switch (proto.getMessageCase()) {
                 case ALERT:

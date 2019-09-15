@@ -47,6 +47,7 @@ import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.InsufficientMoneyException;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -56,6 +57,7 @@ import lombok.extern.slf4j.Slf4j;
 import static com.google.common.base.Preconditions.checkArgument;
 
 @Slf4j
+@Singleton
 public class BondingViewUtils {
     private final P2PService p2PService;
     private final MyReputationListService myReputationListService;
@@ -104,7 +106,7 @@ public class BondingViewUtils {
 
     private void lockupBond(byte[] hash, Coin lockupAmount, int lockupTime, LockupReason lockupReason,
                             Consumer<String> resultHandler) {
-        if (GUIUtil.isReadyForTxBroadcast(p2PService, walletsSetup)) {
+        if (GUIUtil.isReadyForTxBroadcastOrShowPopup(p2PService, walletsSetup)) {
             if (!DevEnv.isDevMode()) {
                 try {
                     Tuple2<Coin, Integer> miningFeeAndTxSize = daoFacade.getLockupTxMiningFeeAndTxSize(lockupAmount, lockupTime, lockupReason, hash);
@@ -133,8 +135,6 @@ public class BondingViewUtils {
             } else {
                 publishLockupTx(lockupAmount, lockupTime, lockupReason, hash, resultHandler);
             }
-        } else {
-            GUIUtil.showNotReadyForTxBroadcastPopups(p2PService, walletsSetup);
         }
     }
 
@@ -159,7 +159,7 @@ public class BondingViewUtils {
     }
 
     public void unLock(String lockupTxId, Consumer<String> resultHandler) {
-        if (GUIUtil.isReadyForTxBroadcast(p2PService, walletsSetup)) {
+        if (GUIUtil.isReadyForTxBroadcastOrShowPopup(p2PService, walletsSetup)) {
             Optional<TxOutput> lockupTxOutput = daoFacade.getLockupTxOutput(lockupTxId);
             checkArgument(lockupTxOutput.isPresent(), "Lockup output must be present. TxId=" + lockupTxId);
             Coin unlockAmount = Coin.valueOf(lockupTxOutput.get().getValue());
@@ -194,8 +194,6 @@ public class BondingViewUtils {
                 t.printStackTrace();
                 new Popup<>().warning(t.getMessage()).show();
             }
-        } else {
-            GUIUtil.showNotReadyForTxBroadcastPopups(p2PService, walletsSetup);
         }
         log.info("unlock tx: {}", lockupTxId);
     }

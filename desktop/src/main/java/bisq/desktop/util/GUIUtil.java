@@ -17,10 +17,14 @@
 
 package bisq.desktop.util;
 
+import bisq.desktop.Navigation;
 import bisq.desktop.app.BisqApp;
 import bisq.desktop.components.AutoTooltipLabel;
 import bisq.desktop.components.BisqTextArea;
 import bisq.desktop.components.indicator.TxConfidenceIndicator;
+import bisq.desktop.main.MainView;
+import bisq.desktop.main.account.AccountView;
+import bisq.desktop.main.account.content.fiataccounts.FiatAccountsView;
 import bisq.desktop.main.overlays.popups.Popup;
 
 import bisq.core.app.BisqEnvironment;
@@ -31,10 +35,14 @@ import bisq.core.locale.CountryUtil;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
+import bisq.core.monetary.Price;
+import bisq.core.monetary.Volume;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountList;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.provider.fee.FeeService;
+import bisq.core.provider.price.MarketPrice;
+import bisq.core.provider.price.PriceFeedService;
 import bisq.core.user.DontShowAgainLookup;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
@@ -48,8 +56,10 @@ import bisq.common.UserThread;
 import bisq.common.app.DevEnv;
 import bisq.common.proto.persistable.PersistableList;
 import bisq.common.proto.persistable.PersistenceProtoResolver;
+import bisq.common.storage.CorruptedDatabaseFilesHandler;
 import bisq.common.storage.FileUtil;
 import bisq.common.storage.Storage;
+import bisq.common.util.MathUtils;
 import bisq.common.util.Tuple2;
 import bisq.common.util.Tuple3;
 import bisq.common.util.Utilities;
@@ -58,6 +68,7 @@ import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.TransactionConfidence;
 import org.bitcoinj.uri.BitcoinURI;
+import org.bitcoinj.utils.Fiat;
 import org.bitcoinj.wallet.DeterministicSeed;
 
 import com.googlecode.jcsv.CSVStrategy;
@@ -154,6 +165,8 @@ public class GUIUtil {
         GUIUtil.preferences = preferences;
     }
 
+    public static String getUserLanguage() { return preferences.getUserLanguage(); }
+
     public static double getScrollbarWidth(Node scrollablePane) {
         Node node = scrollablePane.lookup(".scroll-bar");
         if (node instanceof ScrollBar) {
@@ -188,12 +201,16 @@ public class GUIUtil {
         }
     }
 
-    public static void exportAccounts(ArrayList<PaymentAccount> accounts, String fileName,
-                                      Preferences preferences, Stage stage, PersistenceProtoResolver persistenceProtoResolver) {
+    public static void exportAccounts(ArrayList<PaymentAccount> accounts,
+                                      String fileName,
+                                      Preferences preferences,
+                                      Stage stage,
+                                      PersistenceProtoResolver persistenceProtoResolver,
+                                      CorruptedDatabaseFilesHandler corruptedDatabaseFilesHandler) {
         if (!accounts.isEmpty()) {
             String directory = getDirectoryFromChooser(preferences, stage);
             if (directory != null && !directory.isEmpty()) {
-                Storage<PersistableList<PaymentAccount>> paymentAccountsStorage = new Storage<>(new File(directory), persistenceProtoResolver);
+                Storage<PersistableList<PaymentAccount>> paymentAccountsStorage = new Storage<>(new File(directory), persistenceProtoResolver, corruptedDatabaseFilesHandler);
                 paymentAccountsStorage.initAndGetPersisted(new PaymentAccountList(accounts), fileName, 100);
                 paymentAccountsStorage.queueUpForSave();
                 new Popup<>().feedback(Res.get("guiUtil.accountExport.savedToPath", Paths.get(directory, fileName).toAbsolutePath())).show();
@@ -203,8 +220,12 @@ public class GUIUtil {
         }
     }
 
-    public static void importAccounts(User user, String fileName, Preferences preferences, Stage stage,
-                                      PersistenceProtoResolver persistenceProtoResolver) {
+    public static void importAccounts(User user,
+                                      String fileName,
+                                      Preferences preferences,
+                                      Stage stage,
+                                      PersistenceProtoResolver persistenceProtoResolver,
+                                      CorruptedDatabaseFilesHandler corruptedDatabaseFilesHandler) {
         FileChooser fileChooser = new FileChooser();
         File initDir = new File(preferences.getDirectoryChooserPath());
         if (initDir.isDirectory()) {
@@ -217,7 +238,7 @@ public class GUIUtil {
             if (Paths.get(path).getFileName().toString().equals(fileName)) {
                 String directory = Paths.get(path).getParent().toString();
                 preferences.setDirectoryChooserPath(directory);
-                Storage<PaymentAccountList> paymentAccountsStorage = new Storage<>(new File(directory), persistenceProtoResolver);
+                Storage<PaymentAccountList> paymentAccountsStorage = new Storage<>(new File(directory), persistenceProtoResolver, corruptedDatabaseFilesHandler);
                 PaymentAccountList persisted = paymentAccountsStorage.initAndGetPersistedWithFileName(fileName, 100);
                 if (persisted != null) {
                     final StringBuilder msg = new StringBuilder();
@@ -350,7 +371,8 @@ public class GUIUtil {
         };
     }
 
-    public static Callback<ListView<CurrencyListItem>, ListCell<CurrencyListItem>> getCurrencyListItemCellFactory(String postFixSingle, String postFixMulti,
+    public static Callback<ListView<CurrencyListItem>, ListCell<CurrencyListItem>> getCurrencyListItemCellFactory(String postFixSingle,
+                                                                                                                  String postFixMulti,
                                                                                                                   Preferences preferences) {
         return p -> new ListCell<>() {
             @Override
@@ -582,7 +604,9 @@ public class GUIUtil {
         };
     }
 
-    public static void updateConfidence(TransactionConfidence confidence, Tooltip tooltip, TxConfidenceIndicator txConfidenceIndicator) {
+    public static void updateConfidence(TransactionConfidence confidence,
+                                        Tooltip tooltip,
+                                        TxConfidenceIndicator txConfidenceIndicator) {
         if (confidence != null) {
             switch (confidence.getConfidenceType()) {
                 case UNKNOWN:
@@ -734,21 +758,56 @@ public class GUIUtil {
                 "";
     }
 
-    public static boolean isReadyForTxBroadcast(P2PService p2PService, WalletsSetup walletsSetup) {
-        return p2PService.isBootstrapped() &&
-                walletsSetup.isDownloadComplete() &&
-                walletsSetup.hasSufficientPeersForBroadcast();
+    public static boolean isBootstrappedOrShowPopup(P2PService p2PService) {
+        if (!p2PService.isBootstrapped()) {
+            new Popup<>().information(Res.get("popup.warning.notFullyConnected")).show();
+            return false;
+        }
+
+        return true;
     }
 
-    public static void showNotReadyForTxBroadcastPopups(P2PService p2PService, WalletsSetup walletsSetup) {
-        if (!p2PService.isBootstrapped())
-            new Popup<>().information(Res.get("popup.warning.notFullyConnected")).show();
-        else if (!walletsSetup.hasSufficientPeersForBroadcast())
+    public static boolean isReadyForTxBroadcastOrShowPopup(P2PService p2PService, WalletsSetup walletsSetup) {
+        if (!GUIUtil.isBootstrappedOrShowPopup(p2PService)) {
+            return false;
+        }
+
+        if (!walletsSetup.hasSufficientPeersForBroadcast()) {
             new Popup<>().information(Res.get("popup.warning.notSufficientConnectionsToBtcNetwork", walletsSetup.getMinBroadcastConnections())).show();
-        else if (!walletsSetup.isDownloadComplete())
+            return false;
+        }
+
+        if (!walletsSetup.isDownloadComplete()) {
             new Popup<>().information(Res.get("popup.warning.downloadNotComplete")).show();
-        else
-            log.warn("showNotReadyForTxBroadcastPopups called but no case matched. This should never happen if isReadyForTxBroadcast was called before.");
+            return false;
+        }
+
+        return true;
+    }
+
+    public static boolean canCreateOrTakeOfferOrShowPopup(User user, Navigation navigation) {
+        if (!user.hasAcceptedArbitrators()) {
+            new Popup<>().warning(Res.get("popup.warning.noArbitratorsAvailable")).show();
+            return false;
+        }
+
+        if (!user.hasAcceptedMediators()) {
+            new Popup<>().warning(Res.get("popup.warning.noMediatorsAvailable")).show();
+            return false;
+        }
+
+        if (user.currentPaymentAccountProperty().get() == null) {
+            new Popup<>().headLine(Res.get("popup.warning.noTradingAccountSetup.headline"))
+                    .instruction(Res.get("popup.warning.noTradingAccountSetup.msg"))
+                    .actionButtonTextWithGoTo("navigation.account")
+                    .onAction(() -> {
+                        navigation.setReturnPath(navigation.getCurrentPath());
+                        navigation.navigateTo(MainView.class, AccountView.class, FiatAccountsView.class);
+                    }).show();
+            return false;
+        }
+
+        return true;
     }
 
     public static void showWantToBurnBTCPopup(Coin miningFee, Coin amount, BSFormatter btcFormatter) {
@@ -854,8 +913,13 @@ public class GUIUtil {
         }
     }
 
-    public static void showBsqFeeInfoPopup(Coin fee, Coin miningFee, Coin btcForIssuance, int txSize, BsqFormatter bsqFormatter,
-                                           BSFormatter btcFormatter, String type,
+    public static void showBsqFeeInfoPopup(Coin fee,
+                                           Coin miningFee,
+                                           Coin btcForIssuance,
+                                           int txSize,
+                                           BsqFormatter bsqFormatter,
+                                           BSFormatter btcFormatter,
+                                           String type,
                                            Runnable actionHandler) {
         String confirmationMessage;
 
@@ -892,7 +956,11 @@ public class GUIUtil {
         showBsqFeeInfoPopup(fee, miningFee, null, txSize, bsqFormatter, btcFormatter, type, actionHandler);
     }
 
-    public static void setFitToRowsForTableView(TableView tableView, int rowHeight, int headerHeight, int minNumRows, int maxNumRows) {
+    public static void setFitToRowsForTableView(TableView tableView,
+                                                int rowHeight,
+                                                int headerHeight,
+                                                int minNumRows,
+                                                int maxNumRows) {
         int size = tableView.getItems().size();
         int minHeight = rowHeight * minNumRows + headerHeight;
         int maxHeight = rowHeight * maxNumRows + headerHeight;
@@ -998,7 +1066,9 @@ public class GUIUtil {
     }
 
     @NotNull
-    public static <T> ListCell<T> getComboBoxButtonCell(String title, ComboBox<T> comboBox, Boolean hideOriginalPrompt) {
+    public static <T> ListCell<T> getComboBoxButtonCell(String title,
+                                                        ComboBox<T> comboBox,
+                                                        Boolean hideOriginalPrompt) {
         return new ListCell<>() {
             @Override
             protected void updateItem(T item, boolean empty) {
@@ -1020,5 +1090,23 @@ public class GUIUtil {
     public static void openTxInBsqBlockExplorer(String txId, Preferences preferences) {
         if (txId != null)
             GUIUtil.openWebPage(preferences.getBsqBlockChainExplorer().txUrl + txId, false);
+    }
+
+    public static String getBsqInUsd(Price bsqPrice,
+                                     Coin bsqAmount,
+                                     PriceFeedService priceFeedService,
+                                     BsqFormatter bsqFormatter) {
+        MarketPrice usdMarketPrice = priceFeedService.getMarketPrice("USD");
+        if (usdMarketPrice == null) {
+            return Res.get("shared.na");
+        }
+        long usdMarketPriceAsLong = MathUtils.roundDoubleToLong(MathUtils.scaleUpByPowerOf10(usdMarketPrice.getPrice(),
+                Fiat.SMALLEST_UNIT_EXPONENT));
+        Price usdPrice = Price.valueOf("USD", usdMarketPriceAsLong);
+        String bsqAmountAsString = bsqFormatter.formatCoin(bsqAmount);
+        Volume bsqAmountAsVolume = Volume.parse(bsqAmountAsString, "BSQ");
+        Coin requiredBtc = bsqPrice.getAmountByVolume(bsqAmountAsVolume);
+        Volume volumeByAmount = usdPrice.getVolumeByAmount(requiredBtc);
+        return bsqFormatter.formatVolumeWithCode(volumeByAmount);
     }
 }

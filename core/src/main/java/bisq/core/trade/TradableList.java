@@ -26,8 +26,6 @@ import bisq.common.proto.ProtobufferRuntimeException;
 import bisq.common.proto.persistable.PersistableEnvelope;
 import bisq.common.storage.Storage;
 
-import io.bisq.generated.protobuffer.PB;
-
 import com.google.protobuf.Message;
 
 import javafx.collections.FXCollections;
@@ -41,8 +39,6 @@ import java.util.stream.Stream;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.Nullable;
 
 @Slf4j
 public final class TradableList<T extends Tradable> implements PersistableEnvelope {
@@ -76,19 +72,16 @@ public final class TradableList<T extends Tradable> implements PersistableEnvelo
     @Override
     public Message toProtoMessage() {
         ArrayList<T> clonedList = new ArrayList<>(this.list);
-        return PB.PersistableEnvelope.newBuilder()
-                .setTradableList(PB.TradableList.newBuilder()
+        return protobuf.PersistableEnvelope.newBuilder()
+                .setTradableList(protobuf.TradableList.newBuilder()
                         .addAllTradable(ProtoUtil.collectionToProto(clonedList)))
                 .build();
     }
 
-    @Nullable
-    public static TradableList fromProto(PB.TradableList proto,
+    public static TradableList fromProto(protobuf.TradableList proto,
                                          CoreProtoResolver coreProtoResolver,
                                          Storage<TradableList<Tradable>> storage,
                                          BtcWalletService btcWalletService) {
-        log.debug("TradableList fromProto of {} ", proto);
-
         List<Tradable> list = proto.getTradableList().stream()
                 .map(tradable -> {
                     switch (tradable.getMessageCase()) {
@@ -129,6 +122,10 @@ public final class TradableList<T extends Tradable> implements PersistableEnvelo
         if (changed)
             storage.queueUpForSave();
         return changed;
+    }
+
+    public void persist() {
+        storage.queueUpForSave();
     }
 
     public Stream<T> stream() {

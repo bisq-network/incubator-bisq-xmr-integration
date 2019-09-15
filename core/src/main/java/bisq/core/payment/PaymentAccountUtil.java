@@ -17,6 +17,8 @@
 
 package bisq.core.payment;
 
+import bisq.core.account.witness.AccountAgeRestrictions;
+import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.locale.Country;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferRestrictions;
@@ -65,7 +67,7 @@ public class PaymentAccountUtil {
     private static boolean isTakerAccountForOfferMature(Offer offer,
                                                         PaymentAccount takerPaymentAccount,
                                                         AccountAgeWitnessService accountAgeWitnessService) {
-        return !PaymentMethod.hasChargebackRisk(offer.getPaymentMethod()) ||
+        return !PaymentMethod.hasChargebackRisk(offer.getPaymentMethod(), offer.getCurrencyCode()) ||
                 !OfferRestrictions.isMinTradeAmountRisky(offer) ||
                 (isTakerPaymentAccountValidForOffer(offer, takerPaymentAccount) &&
                         !AccountAgeRestrictions.isMyAccountAgeImmature(accountAgeWitnessService, takerPaymentAccount));
@@ -82,7 +84,10 @@ public class PaymentAccountUtil {
 
     private static boolean hasMyMatureAccountForBuyOffer(PaymentAccount myPaymentAccount,
                                                          AccountAgeWitnessService accountAgeWitnessService) {
-        return !PaymentMethod.hasChargebackRisk(myPaymentAccount.getPaymentMethod()) ||
+        if (myPaymentAccount.selectedTradeCurrency == null)
+            return false;
+        return !PaymentMethod.hasChargebackRisk(myPaymentAccount.getPaymentMethod(),
+                myPaymentAccount.selectedTradeCurrency.getCode()) ||
                 !AccountAgeRestrictions.isMyAccountAgeImmature(accountAgeWitnessService, myPaymentAccount);
     }
 

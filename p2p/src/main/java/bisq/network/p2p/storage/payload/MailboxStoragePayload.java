@@ -18,11 +18,10 @@
 package bisq.network.p2p.storage.payload;
 
 import bisq.network.p2p.PrefixedSealedAndSignedMessage;
+import bisq.network.p2p.storage.messages.AddOncePayload;
 
 import bisq.common.crypto.Sig;
 import bisq.common.util.ExtraDataMapValidator;
-
-import io.bisq.generated.protobuffer.PB;
 
 import com.google.protobuf.ByteString;
 
@@ -51,7 +50,7 @@ import javax.annotation.Nullable;
 @Getter
 @EqualsAndHashCode
 @Slf4j
-public final class MailboxStoragePayload implements ProtectedStoragePayload, ExpirablePayload {
+public final class MailboxStoragePayload implements ProtectedStoragePayload, ExpirablePayload, AddOncePayload {
     private final PrefixedSealedAndSignedMessage prefixedSealedAndSignedMessage;
     private PublicKey senderPubKeyForAddOperation;
     private final byte[] senderPubKeyForAddOperationBytes;
@@ -93,16 +92,16 @@ public final class MailboxStoragePayload implements ProtectedStoragePayload, Exp
     }
 
     @Override
-    public PB.StoragePayload toProtoMessage() {
-        final PB.MailboxStoragePayload.Builder builder = PB.MailboxStoragePayload.newBuilder()
+    public protobuf.StoragePayload toProtoMessage() {
+        final protobuf.MailboxStoragePayload.Builder builder = protobuf.MailboxStoragePayload.newBuilder()
                 .setPrefixedSealedAndSignedMessage(prefixedSealedAndSignedMessage.toProtoNetworkEnvelope().getPrefixedSealedAndSignedMessage())
                 .setSenderPubKeyForAddOperationBytes(ByteString.copyFrom(senderPubKeyForAddOperationBytes))
                 .setOwnerPubKeyBytes(ByteString.copyFrom(ownerPubKeyBytes));
         Optional.ofNullable(extraDataMap).ifPresent(builder::putAllExtraData);
-        return PB.StoragePayload.newBuilder().setMailboxStoragePayload(builder).build();
+        return protobuf.StoragePayload.newBuilder().setMailboxStoragePayload(builder).build();
     }
 
-    public static MailboxStoragePayload fromProto(PB.MailboxStoragePayload proto) {
+    public static MailboxStoragePayload fromProto(protobuf.MailboxStoragePayload proto) {
         return new MailboxStoragePayload(
                 PrefixedSealedAndSignedMessage.fromPayloadProto(proto.getPrefixedSealedAndSignedMessage()),
                 proto.getSenderPubKeyForAddOperationBytes().toByteArray(),

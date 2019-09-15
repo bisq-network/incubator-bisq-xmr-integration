@@ -17,7 +17,11 @@
 
 package bisq.desktop.main.offer;
 
-import bisq.core.arbitration.Arbitrator;
+import bisq.desktop.Navigation;
+import bisq.desktop.util.GUIUtil;
+
+import bisq.core.account.witness.AccountAgeRestrictions;
+import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.TxFeeEstimationService;
 import bisq.core.btc.listeners.BalanceListener;
 import bisq.core.btc.listeners.BsqBalanceListener;
@@ -35,8 +39,6 @@ import bisq.core.offer.Offer;
 import bisq.core.offer.OfferPayload;
 import bisq.core.offer.OfferUtil;
 import bisq.core.offer.OpenOfferManager;
-import bisq.core.payment.AccountAgeRestrictions;
-import bisq.core.payment.AccountAgeWitnessService;
 import bisq.core.payment.HalCashAccount;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountUtil;
@@ -106,6 +108,8 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
     private final TxFeeEstimationService txFeeEstimationService;
     private final ReferralIdService referralIdService;
     private final BSFormatter btcFormatter;
+    private MakerFeeProvider makerFeeProvider;
+    private final Navigation navigation;
     private final String offerId;
     private final BalanceListener btcBalanceListener;
     private final SetChangeListener<PaymentAccount> paymentAccountsChangeListener;
@@ -157,7 +161,9 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
                                  FeeService feeService,
                                  TxFeeEstimationService txFeeEstimationService,
                                  ReferralIdService referralIdService,
-                                 BSFormatter btcFormatter) {
+                                 BSFormatter btcFormatter,
+                                 MakerFeeProvider makerFeeProvider,
+                                 Navigation navigation) {
         super(btcWalletService);
 
         this.openOfferManager = openOfferManager;
@@ -173,6 +179,8 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
         this.txFeeEstimationService = txFeeEstimationService;
         this.referralIdService = referralIdService;
         this.btcFormatter = btcFormatter;
+        this.makerFeeProvider = makerFeeProvider;
+        this.navigation = navigation;
 
         offerId = Utilities.getRandomPrefix(5, 8) + "-" +
                 UUID.randomUUID().toString() + "-" +
@@ -553,19 +561,10 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
         return paymentAccount;
     }
 
-    boolean hasAcceptedArbitrators() {
-        final List<Arbitrator> acceptedArbitrators = user.getAcceptedArbitrators();
-        return acceptedArbitrators != null && acceptedArbitrators.size() > 0;
-    }
-
     protected void setUseMarketBasedPrice(boolean useMarketBasedPrice) {
         this.useMarketBasedPrice.set(useMarketBasedPrice);
         preferences.setUsePercentageBasedPrice(useMarketBasedPrice);
     }
-
-    /*boolean isFeeFromFundingTxSufficient() {
-        return !isMainNet.get() || feeFromFundingTxProperty.get().compareTo(FeePolicy.getMinRequiredFeeForFundingTx()) >= 0;
-    }*/
 
     public ObservableList<PaymentAccount> getPaymentAccounts() {
         return paymentAccounts;
@@ -802,7 +801,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
     }
 
     public Coin getMakerFee() {
-        return OfferUtil.getMakerFee(bsqWalletService, preferences, amount.get());
+        return makerFeeProvider.getMakerFee(bsqWalletService, preferences, amount.get());
     }
 
     public Coin getMakerFeeInBtc() {
@@ -827,5 +826,10 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
 
     public boolean isHalCashAccount() {
         return paymentAccount instanceof HalCashAccount;
+    }
+
+    public boolean canPlaceOffer() {
+        return GUIUtil.isBootstrappedOrShowPopup(p2PService) &&
+                GUIUtil.canCreateOrTakeOfferOrShowPopup(user, navigation);
     }
 }

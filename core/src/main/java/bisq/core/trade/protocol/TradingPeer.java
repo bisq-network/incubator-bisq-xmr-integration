@@ -25,8 +25,6 @@ import bisq.common.crypto.PubKeyRing;
 import bisq.common.proto.ProtoUtil;
 import bisq.common.proto.persistable.PersistablePayload;
 
-import io.bisq.generated.protobuffer.PB;
-
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Message;
 
@@ -73,15 +71,19 @@ public final class TradingPeer implements PersistablePayload {
     private byte[] accountAgeWitnessSignature;
     private long currentDate;
 
+    // Added in v.1.1.6
+    @Nullable
+    private byte[] mediatedPayoutTxSignature;
+
     public TradingPeer() {
     }
 
     @Override
     public Message toProtoMessage() {
-        final PB.TradingPeer.Builder builder = PB.TradingPeer.newBuilder()
+        final protobuf.TradingPeer.Builder builder = protobuf.TradingPeer.newBuilder()
                 .setChangeOutputValue(changeOutputValue);
         Optional.ofNullable(accountId).ifPresent(builder::setAccountId);
-        Optional.ofNullable(paymentAccountPayload).ifPresent(e -> builder.setPaymentAccountPayload((PB.PaymentAccountPayload) e.toProtoMessage()));
+        Optional.ofNullable(paymentAccountPayload).ifPresent(e -> builder.setPaymentAccountPayload((protobuf.PaymentAccountPayload) e.toProtoMessage()));
         Optional.ofNullable(payoutAddressString).ifPresent(builder::setPayoutAddressString);
         Optional.ofNullable(contractAsJson).ifPresent(builder::setContractAsJson);
         Optional.ofNullable(contractSignature).ifPresent(builder::setContractSignature);
@@ -92,11 +94,12 @@ public final class TradingPeer implements PersistablePayload {
         Optional.ofNullable(changeOutputAddress).ifPresent(builder::setChangeOutputAddress);
         Optional.ofNullable(accountAgeWitnessNonce).ifPresent(e -> builder.setAccountAgeWitnessNonce(ByteString.copyFrom(e)));
         Optional.ofNullable(accountAgeWitnessSignature).ifPresent(e -> builder.setAccountAgeWitnessSignature(ByteString.copyFrom(e)));
+        Optional.ofNullable(mediatedPayoutTxSignature).ifPresent(e -> builder.setMediatedPayoutTxSignature(ByteString.copyFrom(e)));
         builder.setCurrentDate(currentDate);
         return builder.build();
     }
 
-    public static TradingPeer fromProto(PB.TradingPeer proto, CoreProtoResolver coreProtoResolver) {
+    public static TradingPeer fromProto(protobuf.TradingPeer proto, CoreProtoResolver coreProtoResolver) {
         if (proto.getDefaultInstanceForType().equals(proto)) {
             return null;
         } else {
@@ -120,6 +123,7 @@ public final class TradingPeer implements PersistablePayload {
             tradingPeer.setAccountAgeWitnessNonce(ProtoUtil.byteArrayOrNullFromProto(proto.getAccountAgeWitnessNonce()));
             tradingPeer.setAccountAgeWitnessSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getAccountAgeWitnessSignature()));
             tradingPeer.setCurrentDate(proto.getCurrentDate());
+            tradingPeer.setMediatedPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getMediatedPayoutTxSignature()));
             return tradingPeer;
         }
     }

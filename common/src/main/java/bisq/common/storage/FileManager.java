@@ -22,8 +22,6 @@ import bisq.common.proto.persistable.PersistableEnvelope;
 import bisq.common.proto.persistable.PersistenceProtoResolver;
 import bisq.common.util.Utilities;
 
-import io.bisq.generated.protobuffer.PB;
-
 import com.google.common.util.concurrent.CycleDetectingLockFactory;
 
 import java.nio.file.Paths;
@@ -74,6 +72,10 @@ public class FileManager<T extends PersistableEnvelope> {
             try {
                 Thread.currentThread().setName("Save-file-task-" + new Random().nextInt(10000));
                 // Runs in an auto save thread.
+                // TODO: this looks like it could cause corrupt data as the savePending is unset before the actual
+                // save. By moving to after the save there might be some persist operations that are not performed
+                // and data would be lost. Probably all persist operations should happen sequencially rather than
+                // skip one when there is already one scheduled
                 if (!savePending.getAndSet(false)) {
                     // Some other scheduled request already beat us to it.
                     return null;
@@ -122,7 +124,7 @@ public class FileManager<T extends PersistableEnvelope> {
         log.debug("Read from disc: {}", file.getName());
 
         try (final FileInputStream fileInputStream = new FileInputStream(file)) {
-            PB.PersistableEnvelope persistable = PB.PersistableEnvelope.parseDelimitedFrom(fileInputStream);
+            protobuf.PersistableEnvelope persistable = protobuf.PersistableEnvelope.parseDelimitedFrom(fileInputStream);
             return (T) persistenceProtoResolver.fromProto(persistable);
         } catch (Throwable t) {
             String errorMsg = "Exception at proto read: " + t.getMessage() + " file:" + file.getAbsolutePath();
@@ -188,7 +190,7 @@ public class FileManager<T extends PersistableEnvelope> {
     private void saveNowInternal(T persistable) {
         long now = System.currentTimeMillis();
         saveToFile(persistable, dir, storageFile);
-        log.trace("Save {} completed in {} msec", storageFile, System.currentTimeMillis() - now);
+        log.debug("Save {} completed in {} msec", storageFile, System.currentTimeMillis() - now);
     }
 
     private synchronized void saveToFile(T persistable, File dir, File storageFile) {
@@ -198,9 +200,9 @@ public class FileManager<T extends PersistableEnvelope> {
 
         try {
             log.debug("Write to disc: {}", storageFile.getName());
-            PB.PersistableEnvelope protoPersistable;
+            protobuf.PersistableEnvelope protoPersistable;
             try {
-                protoPersistable = (PB.PersistableEnvelope) persistable.toProtoMessage();
+                protoPersistable = (protobuf.PersistableEnvelope) persistable.toProtoMessage();
                 if (protoPersistable.toByteArray().length == 0)
                     log.error("protoPersistable is empty. persistable=" + persistable.getClass().getSimpleName());
             } catch (Throwable e) {

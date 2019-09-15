@@ -24,19 +24,14 @@ import bisq.core.monetary.Volume;
 import bisq.core.offer.OfferPayload;
 import bisq.core.offer.OfferUtil;
 
-import bisq.network.p2p.storage.payload.CapabilityRequiringPayload;
 import bisq.network.p2p.storage.payload.LazyProcessedPayload;
 import bisq.network.p2p.storage.payload.PersistableNetworkPayload;
 
-import bisq.common.app.Capabilities;
-import bisq.common.app.Capability;
 import bisq.common.crypto.Hash;
 import bisq.common.proto.persistable.PersistableEnvelope;
 import bisq.common.util.ExtraDataMapValidator;
 import bisq.common.util.JsonExclude;
 import bisq.common.util.Utilities;
-
-import io.bisq.generated.protobuffer.PB;
 
 import com.google.protobuf.ByteString;
 
@@ -65,8 +60,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 @Value
-public final class TradeStatistics2 implements LazyProcessedPayload, PersistableNetworkPayload, PersistableEnvelope, CapabilityRequiringPayload {
+public final class TradeStatistics2 implements LazyProcessedPayload, PersistableNetworkPayload, PersistableEnvelope {
     public static final String ARBITRATOR_ADDRESS = "arbAddr";
+    public static final String MEDIATOR_ADDRESS = "medAddr";
 
     private final OfferPayload.Direction direction;
     private final String baseCurrency;
@@ -164,8 +160,8 @@ public final class TradeStatistics2 implements LazyProcessedPayload, Persistable
     }
 
     @Override
-    public PB.PersistableNetworkPayload toProtoMessage() {
-        final PB.TradeStatistics2.Builder builder = PB.TradeStatistics2.newBuilder()
+    public protobuf.PersistableNetworkPayload toProtoMessage() {
+        final protobuf.TradeStatistics2.Builder builder = protobuf.TradeStatistics2.newBuilder()
                 .setDirection(OfferPayload.Direction.toProtoMessage(direction))
                 .setBaseCurrency(baseCurrency)
                 .setCounterCurrency(counterCurrency)
@@ -182,15 +178,15 @@ public final class TradeStatistics2 implements LazyProcessedPayload, Persistable
                 .setDepositTxId(depositTxId)
                 .setHash(ByteString.copyFrom(hash));
         Optional.ofNullable(extraDataMap).ifPresent(builder::putAllExtraData);
-        return PB.PersistableNetworkPayload.newBuilder().setTradeStatistics2(builder).build();
+        return protobuf.PersistableNetworkPayload.newBuilder().setTradeStatistics2(builder).build();
     }
 
 
-    public PB.TradeStatistics2 toProtoTradeStatistics2() {
+    public protobuf.TradeStatistics2 toProtoTradeStatistics2() {
         return toProtoMessage().getTradeStatistics2();
     }
 
-    public static TradeStatistics2 fromProto(PB.TradeStatistics2 proto) {
+    public static TradeStatistics2 fromProto(protobuf.TradeStatistics2 proto) {
         return new TradeStatistics2(
                 OfferPayload.Direction.fromProto(proto.getDirection()),
                 proto.getBaseCurrency(),
@@ -214,11 +210,6 @@ public final class TradeStatistics2 implements LazyProcessedPayload, Persistable
     ///////////////////////////////////////////////////////////////////////////////////////////
     // API
     ///////////////////////////////////////////////////////////////////////////////////////////
-
-    @Override
-    public Capabilities getRequiredCapabilities() {
-        return new Capabilities(Capability.TRADE_STATISTICS_2);
-    }
 
     @Override
     public byte[] getHash() {

@@ -17,7 +17,8 @@
 
 package bisq.core.proto.persistable;
 
-import bisq.core.arbitration.DisputeList;
+import bisq.core.account.sign.SignedWitnessStore;
+import bisq.core.account.witness.AccountAgeWitnessStore;
 import bisq.core.btc.model.AddressEntryList;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.dao.governance.blindvote.MyBlindVoteList;
@@ -32,9 +33,10 @@ import bisq.core.dao.state.DaoStateStore;
 import bisq.core.dao.state.model.governance.BallotList;
 import bisq.core.dao.state.model.governance.MeritList;
 import bisq.core.dao.state.unconfirmed.UnconfirmedBsqChangeOutputList;
-import bisq.core.payment.AccountAgeWitnessStore;
 import bisq.core.payment.PaymentAccountList;
 import bisq.core.proto.CoreProtoResolver;
+import bisq.core.support.dispute.arbitration.ArbitrationDisputeList;
+import bisq.core.support.dispute.mediation.MediationDisputeList;
 import bisq.core.trade.TradableList;
 import bisq.core.trade.statistics.TradeStatistics2Store;
 import bisq.core.user.PreferencesPayload;
@@ -49,14 +51,14 @@ import bisq.common.proto.network.NetworkProtoResolver;
 import bisq.common.proto.persistable.NavigationPath;
 import bisq.common.proto.persistable.PersistableEnvelope;
 import bisq.common.proto.persistable.PersistenceProtoResolver;
+import bisq.common.storage.CorruptedDatabaseFilesHandler;
 import bisq.common.storage.Storage;
-
-import io.bisq.generated.protobuffer.PB;
 
 import com.google.inject.Provider;
 
 import javax.inject.Inject;
 import javax.inject.Named;
+import javax.inject.Singleton;
 
 import java.io.File;
 
@@ -64,23 +66,27 @@ import lombok.extern.slf4j.Slf4j;
 
 // TODO Use ProtobufferException instead of ProtobufferRuntimeException
 @Slf4j
+@Singleton
 public class CorePersistenceProtoResolver extends CoreProtoResolver implements PersistenceProtoResolver {
     private final Provider<BtcWalletService> btcWalletService;
     private final NetworkProtoResolver networkProtoResolver;
     private final File storageDir;
+    private final CorruptedDatabaseFilesHandler corruptedDatabaseFilesHandler;
 
     @Inject
     public CorePersistenceProtoResolver(Provider<BtcWalletService> btcWalletService,
                                         NetworkProtoResolver networkProtoResolver,
-                                        @Named(Storage.STORAGE_DIR) File storageDir) {
+                                        @Named(Storage.STORAGE_DIR) File storageDir,
+                                        CorruptedDatabaseFilesHandler corruptedDatabaseFilesHandler) {
         this.btcWalletService = btcWalletService;
         this.networkProtoResolver = networkProtoResolver;
         this.storageDir = storageDir;
 
+        this.corruptedDatabaseFilesHandler = corruptedDatabaseFilesHandler;
     }
 
     @Override
-    public PersistableEnvelope fromProto(PB.PersistableEnvelope proto) {
+    public PersistableEnvelope fromProto(protobuf.PersistableEnvelope proto) {
         if (proto != null) {
             switch (proto.getMessageCase()) {
                 case SEQUENCE_NUMBER_MAP:
@@ -92,14 +98,18 @@ public class CorePersistenceProtoResolver extends CoreProtoResolver implements P
                 case TRADABLE_LIST:
                     return TradableList.fromProto(proto.getTradableList(),
                             this,
-                            new Storage<>(storageDir, this),
+                            new Storage<>(storageDir, this, corruptedDatabaseFilesHandler),
                             btcWalletService.get());
                 case TRADE_STATISTICS_LIST:
                     throw new ProtobufferRuntimeException("TRADE_STATISTICS_LIST is not used anymore");
-                case DISPUTE_LIST:
-                    return DisputeList.fromProto(proto.getDisputeList(),
+                case ARBITRATION_DISPUTE_LIST:
+                    return ArbitrationDisputeList.fromProto(proto.getArbitrationDisputeList(),
                             this,
-                            new Storage<>(storageDir, this));
+                            new Storage<>(storageDir, this, corruptedDatabaseFilesHandler));
+                case MEDIATION_DISPUTE_LIST:
+                    return MediationDisputeList.fromProto(proto.getMediationDisputeList(),
+                            this,
+                            new Storage<>(storageDir, this, corruptedDatabaseFilesHandler));
                 case PREFERENCES_PAYLOAD:
                     return PreferencesPayload.fromProto(proto.getPreferencesPayload(), this);
                 case USER_PAYLOAD:
@@ -138,6 +148,8 @@ public class CorePersistenceProtoResolver extends CoreProtoResolver implements P
                     return MyProofOfBurnList.fromProto(proto.getMyProofOfBurnList());
                 case UNCONFIRMED_BSQ_CHANGE_OUTPUT_LIST:
                     return UnconfirmedBsqChangeOutputList.fromProto(proto.getUnconfirmedBsqChangeOutputList());
+                case SIGNED_WITNESS_STORE:
+                    return SignedWitnessStore.fromProto(proto.getSignedWitnessStore());
 
                 default:
                     throw new ProtobufferRuntimeException("Unknown proto message case(PB.PersistableEnvelope). " +

@@ -19,7 +19,7 @@ package bisq.desktop.main.presentation;
 
 import bisq.desktop.components.BalanceWithConfirmationTextField;
 import bisq.desktop.components.TxIdTextField;
-import bisq.desktop.main.PriceFeedComboBoxItem;
+import bisq.desktop.main.shared.PriceFeedComboBoxItem;
 import bisq.desktop.util.GUIUtil;
 
 import bisq.core.btc.wallet.BtcWalletService;
@@ -35,6 +35,7 @@ import bisq.core.util.BSFormatter;
 import bisq.common.UserThread;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
@@ -60,6 +61,7 @@ import java.util.stream.Collectors;
 
 import lombok.Getter;
 
+@Singleton
 public class MarketPricePresentation {
     private final Preferences preferences;
     private final BSFormatter formatter;
@@ -85,7 +87,6 @@ public class MarketPricePresentation {
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    @SuppressWarnings("WeakerAccess")
     @Inject
     public MarketPricePresentation(BtcWalletService btcWalletService,
                                    PriceFeedService priceFeedService,

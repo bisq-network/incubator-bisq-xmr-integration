@@ -21,7 +21,6 @@ import bisq.core.alert.AlertModule;
 import bisq.core.app.AppOptionKeys;
 import bisq.core.app.BisqEnvironment;
 import bisq.core.app.TorSetup;
-import bisq.core.arbitration.ArbitratorModule;
 import bisq.core.btc.BitcoinModule;
 import bisq.core.dao.DaoModule;
 import bisq.core.filter.FilterModule;
@@ -38,11 +37,13 @@ import bisq.network.p2p.P2PModule;
 import bisq.network.p2p.network.BridgeAddressProvider;
 import bisq.network.p2p.seed.SeedNodeRepository;
 
-import bisq.common.Clock;
+import bisq.common.ClockWatcher;
 import bisq.common.CommonOptionKeys;
 import bisq.common.app.AppModule;
 import bisq.common.crypto.KeyRing;
 import bisq.common.crypto.KeyStorage;
+import bisq.common.crypto.PubKeyRing;
+import bisq.common.crypto.PubKeyRingProvider;
 import bisq.common.proto.network.NetworkProtoResolver;
 import bisq.common.proto.persistable.PersistenceProtoResolver;
 import bisq.common.storage.Storage;
@@ -69,7 +70,7 @@ public class ModuleForAppWithP2p extends AppModule {
         bind(KeyStorage.class).in(Singleton.class);
         bind(KeyRing.class).in(Singleton.class);
         bind(User.class).in(Singleton.class);
-        bind(Clock.class).in(Singleton.class);
+        bind(ClockWatcher.class).in(Singleton.class);
         bind(NetworkProtoResolver.class).to(CoreNetworkProtoResolver.class).in(Singleton.class);
         bind(PersistenceProtoResolver.class).to(CorePersistenceProtoResolver.class).in(Singleton.class);
         bind(Preferences.class).in(Singleton.class);
@@ -96,13 +97,14 @@ public class ModuleForAppWithP2p extends AppModule {
         // ordering is used for shut down sequence
         install(tradeModule());
         install(encryptionServiceModule());
-        install(arbitratorModule());
         install(offerModule());
         install(p2pModule());
         install(bitcoinModule());
         install(daoModule());
         install(alertModule());
         install(filterModule());
+        bind(PubKeyRing.class).toProvider(PubKeyRingProvider.class);
+
     }
 
     protected void configEnvironment() {
@@ -115,10 +117,6 @@ public class ModuleForAppWithP2p extends AppModule {
 
     protected EncryptionServiceModule encryptionServiceModule() {
         return new EncryptionServiceModule(environment);
-    }
-
-    protected ArbitratorModule arbitratorModule() {
-        return new ArbitratorModule(environment);
     }
 
     protected AlertModule alertModule() {

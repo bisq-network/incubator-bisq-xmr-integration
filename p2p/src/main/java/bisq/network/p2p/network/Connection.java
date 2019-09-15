@@ -47,8 +47,6 @@ import bisq.common.proto.network.NetworkEnvelope;
 import bisq.common.proto.network.NetworkProtoResolver;
 import bisq.common.util.Utilities;
 
-import io.bisq.generated.protobuffer.PB;
-
 import javax.inject.Inject;
 
 import com.google.common.util.concurrent.MoreExecutors;
@@ -123,8 +121,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private static ConnectionConfig connectionConfig;
 
     // Leaving some constants package-private for tests to know limits.
-    static final int PERMITTED_MESSAGE_SIZE = 200 * 1024;                       // 200 kb
-    static final int MAX_PERMITTED_MESSAGE_SIZE = 10 * 1024 * 1024;         // 10 MB (425 offers resulted in about 660 kb, mailbox msg will add more to it) offer has usually 2 kb, mailbox 3kb.
+    private static final int PERMITTED_MESSAGE_SIZE = 200 * 1024;                       // 200 kb
+    private static final int MAX_PERMITTED_MESSAGE_SIZE = 10 * 1024 * 1024;             // 10 MB (425 offers resulted in about 660 kb, mailbox msg will add more to it) offer has usually 2 kb, mailbox 3kb.
     //TODO decrease limits again after testing
     private static final int SOCKET_TIMEOUT = (int) TimeUnit.SECONDS.toMillis(120);
 
@@ -174,7 +172,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private RuleViolation ruleViolation;
     private final ConcurrentHashMap<RuleViolation, Integer> ruleViolations = new ConcurrentHashMap<>();
 
-    private Capabilities capabilities = new Capabilities();
+    private final Capabilities capabilities = new Capabilities();
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -235,9 +233,9 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         return capabilities;
     }
 
-    Object lock = new Object();
-    Queue<BundleOfEnvelopes> queueOfBundles = new ConcurrentLinkedQueue<>();
-    ScheduledExecutorService bundleSender = Executors.newSingleThreadScheduledExecutor();
+    private final Object lock = new Object();
+    private final Queue<BundleOfEnvelopes> queueOfBundles = new ConcurrentLinkedQueue<>();
+    private final ScheduledExecutorService bundleSender = Executors.newSingleThreadScheduledExecutor();
 
     // Called from various threads
     public void sendMessage(NetworkEnvelope networkEnvelope) {
@@ -248,11 +246,11 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                 try {
                     String peersNodeAddress = peersNodeAddressOptional.map(NodeAddress::toString).orElse("null");
 
-                    PB.NetworkEnvelope proto = networkEnvelope.toProtoNetworkEnvelope();
-                    log.debug("Sending message: {}", Utilities.toTruncatedString(proto.toString(), 10000));
+                    protobuf.NetworkEnvelope proto = networkEnvelope.toProtoNetworkEnvelope();
+                    log.trace("Sending message: {}", Utilities.toTruncatedString(proto.toString(), 10000));
 
                     if (networkEnvelope instanceof Ping | networkEnvelope instanceof RefreshOfferMessage) {
-                        // pings and offer refresh msg we dont want to log in production
+                        // pings and offer refresh msg we don't want to log in production
                         log.trace("\n\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n" +
                                         "Sending direct message to peer" +
                                         "Write object to outputStream to peer: {} (uid={})\ntruncated message={} / size={}" +
@@ -300,10 +298,13 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                                         if (!stopped) {
                                             synchronized (lock) {
                                                 BundleOfEnvelopes current = queueOfBundles.poll();
-                                                if(current.getEnvelopes().size() == 1)
-                                                    protoOutputStream.writeEnvelope(current.getEnvelopes().get(0));
-                                                else
-                                                    protoOutputStream.writeEnvelope(current);
+                                                if (current != null) {
+                                                    if (current.getEnvelopes().size() == 1) {
+                                                        protoOutputStream.writeEnvelope(current.getEnvelopes().get(0));
+                                                    } else {
+                                                        protoOutputStream.writeEnvelope(current);
+                                                    }
+                                                }
                                             }
                                         }
                                     }, lastSendTimeStamp - now, TimeUnit.MILLISECONDS);
@@ -388,10 +389,10 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         messageTimeStamps.add(now);
 
         // clean list
-        while(messageTimeStamps.size() > msgThrottlePer10Sec)
+        while (messageTimeStamps.size() > msgThrottlePer10Sec)
             messageTimeStamps.remove(0);
 
-        return violatesThrottleLimit(now,1, msgThrottlePerSec) || violatesThrottleLimit(now,10, msgThrottlePer10Sec);
+        return violatesThrottleLimit(now, 1, msgThrottlePerSec) || violatesThrottleLimit(now, 10, msgThrottlePer10Sec);
     }
 
     private boolean violatesThrottleLimit(long now, int seconds, int messageCountLimit) {
@@ -401,7 +402,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
             long compareValue = messageTimeStamps.get(messageTimeStamps.size() - messageCountLimit);
 
             // if duration < seconds sec we received too much network_messages
-            if(now - compareValue < TimeUnit.SECONDS.toMillis(seconds)) {
+            if (now - compareValue < TimeUnit.SECONDS.toMillis(seconds)) {
                 log.error("violatesThrottleLimit {}/{} second(s)", messageCountLimit, seconds);
 
                 return true;
@@ -438,7 +439,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         this.peerType = peerType;
     }
 
-    public void setPeersNodeAddress(NodeAddress peerNodeAddress) {
+    private void setPeersNodeAddress(NodeAddress peerNodeAddress) {
         checkNotNull(peerNodeAddress, "peerAddress must not be null");
         peersNodeAddressOptional = Optional.of(peerNodeAddress);
 
@@ -496,6 +497,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
                         stopped = true;
 
+                        //noinspection UnstableApiUsage
                         Uninterruptibles.sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
                     } catch (Throwable t) {
                         log.error(t.getMessage());
@@ -536,6 +538,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                 e.printStackTrace();
             }
 
+            //noinspection UnstableApiUsage
             MoreExecutors.shutdownAndAwaitTermination(singleThreadExecutor, 500, TimeUnit.MILLISECONDS);
 
             log.debug("Connection shutdown complete " + this.toString());
@@ -707,12 +710,12 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                         Thread.sleep(20);
                     }
 
-                    // Reading the protobuffer message from the inputstream
-                    PB.NetworkEnvelope proto = PB.NetworkEnvelope.parseDelimitedFrom(protoInputStream);
+                    // Reading the protobuffer message from the inputStream
+                    protobuf.NetworkEnvelope proto = protobuf.NetworkEnvelope.parseDelimitedFrom(protoInputStream);
 
                     if (proto == null) {
                         if (protoInputStream.read() == -1)
-                            log.info("proto is null because protoInputStream.read()=-1 (EOF). That is expected if client got stopped without proper shutdown.");
+                            log.debug("proto is null because protoInputStream.read()=-1 (EOF). That is expected if client got stopped without proper shutdown.");
                         else
                             log.warn("proto is null. protoInputStream.read()=" + protoInputStream.read());
                         shutDown(CloseConnectionReason.NO_PROTO_BUFFER_ENV);
@@ -721,8 +724,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
                     NetworkEnvelope networkEnvelope = networkProtoResolver.fromProto(proto);
                     lastReadTimeStamp = now;
-                    log.debug("<< Received networkEnvelope of type: " + networkEnvelope.getClass().getSimpleName());
-
+                    log.debug("<< Received networkEnvelope of type: {}", networkEnvelope.getClass().getSimpleName());
                     int size = proto.getSerializedSize();
                     // We comment out that part as only debug and trace log level is used. For debugging purposes
                     // we leave the code though.
@@ -758,7 +760,9 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     boolean exceeds;
                     if (networkEnvelope instanceof ExtendedDataSizePermission) {
                         exceeds = size > MAX_PERMITTED_MESSAGE_SIZE;
-                        log.debug("size={}; object={}", size, Utilities.toTruncatedString(proto, 100));
+                        if (log.isDebugEnabled()) {
+                            log.debug("size={}; object={}", size, Utilities.toTruncatedString(proto, 100));
+                        }
                     } else {
                         exceeds = size > PERMITTED_MESSAGE_SIZE;
                     }
@@ -795,14 +799,31 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     if (networkEnvelope instanceof SupportedCapabilitiesMessage) {
                         Capabilities supportedCapabilities = ((SupportedCapabilitiesMessage) networkEnvelope).getSupportedCapabilities();
                         if (supportedCapabilities != null) {
-                            capabilities.set(supportedCapabilities);
+                            if (!capabilities.equals(supportedCapabilities)) {
+                                capabilities.set(supportedCapabilities);
+
+                                // Capabilities can be empty. We only check for mandatory if we get some capabilities.
+                                if (!capabilities.isEmpty() && !Capabilities.hasMandatoryCapability(capabilities)) {
+                                    shutDown(CloseConnectionReason.MANDATORY_CAPABILITIES_NOT_SUPPORTED);
+                                    return;
+                                }
+
+                                capabilitiesListeners.forEach(weakListener -> {
+                                    SupportedCapabilitiesListener supportedCapabilitiesListener = weakListener.get();
+                                    if (supportedCapabilitiesListener != null) {
+                                        UserThread.execute(() -> supportedCapabilitiesListener.onChanged(supportedCapabilities));
+                                    }
+                                });
+                            }
                         }
                     }
 
                     if (networkEnvelope instanceof CloseConnectionMessage) {
                         // If we get a CloseConnectionMessage we shut down
-                        log.info("CloseConnectionMessage received. Reason={}\n\t" +
-                                "connection={}", proto.getCloseConnectionMessage().getReason(), this);
+                        if (log.isDebugEnabled()) {
+                            log.debug("CloseConnectionMessage received. Reason={}\n\t" +
+                                    "connection={}", proto.getCloseConnectionMessage().getReason(), this);
+                        }
                         if (CloseConnectionReason.PEER_BANNED.name().equals(proto.getCloseConnectionMessage().getReason())) {
                             log.warn("We got shut down because we are banned by the other peer. (InputHandler.run CloseConnectionMessage)");
                             shutDown(CloseConnectionReason.PEER_BANNED);

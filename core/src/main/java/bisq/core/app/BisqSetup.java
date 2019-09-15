@@ -17,12 +17,12 @@
 
 package bisq.core.app;
 
+import bisq.core.account.sign.SignedWitnessService;
+import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.alert.Alert;
 import bisq.core.alert.AlertManager;
 import bisq.core.alert.PrivateNotificationManager;
 import bisq.core.alert.PrivateNotificationPayload;
-import bisq.core.arbitration.ArbitratorManager;
-import bisq.core.arbitration.DisputeManager;
 import bisq.core.btc.Balances;
 import bisq.core.btc.model.AddressEntry;
 import bisq.core.btc.setup.WalletsSetup;
@@ -41,11 +41,15 @@ import bisq.core.notifications.alerts.TradeEvents;
 import bisq.core.notifications.alerts.market.MarketAlerts;
 import bisq.core.notifications.alerts.price.PriceAlert;
 import bisq.core.offer.OpenOfferManager;
-import bisq.core.payment.AccountAgeWitnessService;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.TradeLimits;
 import bisq.core.provider.fee.FeeService;
 import bisq.core.provider.price.PriceFeedService;
+import bisq.core.support.dispute.arbitration.ArbitrationManager;
+import bisq.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import bisq.core.support.dispute.mediation.MediationManager;
+import bisq.core.support.dispute.mediation.mediator.MediatorManager;
+import bisq.core.support.traderchat.TraderChatManager;
 import bisq.core.trade.TradeManager;
 import bisq.core.trade.statistics.AssetTradeActivityCheck;
 import bisq.core.trade.statistics.TradeStatisticsManager;
@@ -58,7 +62,7 @@ import bisq.network.crypto.EncryptionService;
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.peers.keepalive.messages.Ping;
 
-import bisq.common.Clock;
+import bisq.common.ClockWatcher;
 import bisq.common.Timer;
 import bisq.common.UserThread;
 import bisq.common.app.DevEnv;
@@ -72,6 +76,7 @@ import bisq.common.util.Utilities;
 import org.bitcoinj.core.Coin;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import com.google.common.net.InetAddresses;
 
@@ -109,6 +114,7 @@ import lombok.extern.slf4j.Slf4j;
 import javax.annotation.Nullable;
 
 @Slf4j
+@Singleton
 public class BisqSetup {
     public interface BisqSetupCompleteListener {
         void onSetupComplete();
@@ -124,23 +130,27 @@ public class BisqSetup {
     private final Balances balances;
     private final PriceFeedService priceFeedService;
     private final ArbitratorManager arbitratorManager;
+    private final MediatorManager mediatorManager;
     private final P2PService p2PService;
     private final TradeManager tradeManager;
     private final OpenOfferManager openOfferManager;
-    private final DisputeManager disputeManager;
+    private final ArbitrationManager arbitrationManager;
+    private final MediationManager mediationManager;
+    private final TraderChatManager traderChatManager;
     private final Preferences preferences;
     private final User user;
     private final AlertManager alertManager;
     private final PrivateNotificationManager privateNotificationManager;
     private final FilterManager filterManager;
     private final TradeStatisticsManager tradeStatisticsManager;
-    private final Clock clock;
+    private final ClockWatcher clockWatcher;
     private final FeeService feeService;
     private final DaoSetup daoSetup;
     private final EncryptionService encryptionService;
     private final KeyRing keyRing;
     private final BisqEnvironment bisqEnvironment;
     private final AccountAgeWitnessService accountAgeWitnessService;
+    private final SignedWitnessService signedWitnessService;
     private final MobileNotificationService mobileNotificationService;
     private final MyOfferTakenEvents myOfferTakenEvents;
     private final TradeEvents tradeEvents;
@@ -202,23 +212,27 @@ public class BisqSetup {
                      Balances balances,
                      PriceFeedService priceFeedService,
                      ArbitratorManager arbitratorManager,
+                     MediatorManager mediatorManager,
                      P2PService p2PService,
                      TradeManager tradeManager,
                      OpenOfferManager openOfferManager,
-                     DisputeManager disputeManager,
+                     ArbitrationManager arbitrationManager,
+                     MediationManager mediationManager,
+                     TraderChatManager traderChatManager,
                      Preferences preferences,
                      User user,
                      AlertManager alertManager,
                      PrivateNotificationManager privateNotificationManager,
                      FilterManager filterManager,
                      TradeStatisticsManager tradeStatisticsManager,
-                     Clock clock,
+                     ClockWatcher clockWatcher,
                      FeeService feeService,
                      DaoSetup daoSetup,
                      EncryptionService encryptionService,
                      KeyRing keyRing,
                      BisqEnvironment bisqEnvironment,
                      AccountAgeWitnessService accountAgeWitnessService,
+                     SignedWitnessService signedWitnessService,
                      MobileNotificationService mobileNotificationService,
                      MyOfferTakenEvents myOfferTakenEvents,
                      TradeEvents tradeEvents,
@@ -242,23 +256,27 @@ public class BisqSetup {
         this.balances = balances;
         this.priceFeedService = priceFeedService;
         this.arbitratorManager = arbitratorManager;
+        this.mediatorManager = mediatorManager;
         this.p2PService = p2PService;
         this.tradeManager = tradeManager;
         this.openOfferManager = openOfferManager;
-        this.disputeManager = disputeManager;
+        this.arbitrationManager = arbitrationManager;
+        this.mediationManager = mediationManager;
+        this.traderChatManager = traderChatManager;
         this.preferences = preferences;
         this.user = user;
         this.alertManager = alertManager;
         this.privateNotificationManager = privateNotificationManager;
         this.filterManager = filterManager;
         this.tradeStatisticsManager = tradeStatisticsManager;
-        this.clock = clock;
+        this.clockWatcher = clockWatcher;
         this.feeService = feeService;
         this.daoSetup = daoSetup;
         this.encryptionService = encryptionService;
         this.keyRing = keyRing;
         this.bisqEnvironment = bisqEnvironment;
         this.accountAgeWitnessService = accountAgeWitnessService;
+        this.signedWitnessService = signedWitnessService;
         this.mobileNotificationService = mobileNotificationService;
         this.myOfferTakenEvents = myOfferTakenEvents;
         this.tradeEvents = tradeEvents;
@@ -283,6 +301,11 @@ public class BisqSetup {
     }
 
     public void start() {
+        if (log.isDebugEnabled()) {
+            UserThread.runPeriodically(() -> {
+                log.debug("1 second heartbeat");
+            }, 1);
+        }
         maybeReSyncSPVChain();
         maybeShowTac();
     }
@@ -575,12 +598,15 @@ public class BisqSetup {
                 .filter(e -> tradeManager.getSetOfAllTradeIds().contains(e.getOfferId()) &&
                         e.getContext() == AddressEntry.Context.MULTI_SIG)
                 .forEach(e -> {
-                    final Coin balance = e.getCoinLockedInMultiSig();
-                    final String message = Res.get("popup.warning.lockedUpFunds",
-                            formatter.formatCoinWithCode(balance), e.getAddressString(), e.getOfferId());
-                    log.warn(message);
-                    if (lockedUpFundsHandler != null)
-                        lockedUpFundsHandler.accept(message);
+                    Coin balance = e.getCoinLockedInMultiSig();
+                    if (balance.isPositive()) {
+                        String message = Res.get("popup.warning.lockedUpFunds",
+                                formatter.formatCoinWithCode(balance), e.getAddressString(), e.getOfferId());
+                        log.warn(message);
+                        if (lockedUpFundsHandler != null) {
+                            lockedUpFundsHandler.accept(message);
+                        }
+                    }
                 });
     }
 
@@ -599,11 +625,13 @@ public class BisqSetup {
     private void initDomainServices() {
         log.info("initDomainServices");
 
-        clock.start();
+        clockWatcher.start();
 
         tradeLimits.onAllServicesInitialized();
 
-        disputeManager.onAllServicesInitialized();
+        arbitrationManager.onAllServicesInitialized();
+        mediationManager.onAllServicesInitialized();
+        traderChatManager.onAllServicesInitialized();
 
         tradeManager.onAllServicesInitialized();
 
@@ -615,6 +643,7 @@ public class BisqSetup {
         balances.onAllServicesInitialized();
 
         arbitratorManager.onAllServicesInitialized();
+        mediatorManager.onAllServicesInitialized();
 
         alertManager.alertMessageProperty().addListener((observable, oldValue, newValue) ->
                 displayAlertIfPresent(newValue, false));
@@ -645,6 +674,7 @@ public class BisqSetup {
         assetService.onAllServicesInitialized();
 
         accountAgeWitnessService.onAllServicesInitialized();
+        signedWitnessService.onAllServicesInitialized();
 
         priceFeedService.setCurrencyCodeOnInit();
 
