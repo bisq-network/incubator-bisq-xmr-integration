@@ -177,8 +177,6 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
     @Override
     protected void initialize() {
         MainView.rootContainer = root;
-        if (LanguageUtil.isDefaultLanguageRTL())
-            MainView.rootContainer.setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
 
         ToggleButton marketButton = new NavButton(MarketView.class, Res.get("mainView.menu.market").toUpperCase());
         ToggleButton buyButton = new NavButton(BuyOfferView.class, Res.get("mainView.menu.buyBtc").toUpperCase());

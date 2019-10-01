@@ -40,7 +40,7 @@ import bisq.desktop.components.TextFieldWithCopyIcon;
 import bisq.desktop.components.TextFieldWithIcon;
 import bisq.desktop.components.TitledGroupBg;
 import bisq.desktop.components.TxIdTextField;
-
+import bisq.desktop.components.WalletAddressTextField;
 import bisq.core.locale.Res;
 
 import bisq.common.util.Tuple2;
@@ -1599,6 +1599,15 @@ public class FormBuilder {
                                                                                        String title,
                                                                                        double top) {
         BsqAddressTextField addressTextField = new BsqAddressTextField();
+        addressTextField.setFocusTraversable(false);
+
+        Tuple2<Label, VBox> topLabelWithVBox = addTopLabelWithVBox(gridPane, rowIndex, title, addressTextField, top - 15);
+
+        return new Tuple3<>(topLabelWithVBox.first, addressTextField, topLabelWithVBox.second);
+    }
+
+    public static Tuple3<Label, WalletAddressTextField, VBox> addLabelWalletAddressTextField(GridPane gridPane, int rowIndex, String title, double top) {
+    	WalletAddressTextField addressTextField = new WalletAddressTextField();
         addressTextField.setFocusTraversable(false);
 
         Tuple2<Label, VBox> topLabelWithVBox = addTopLabelWithVBox(gridPane, rowIndex, title, addressTextField, top - 15);
