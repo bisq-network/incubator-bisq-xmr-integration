@@ -138,7 +138,7 @@ public class MoneroWalletRpc {
 		Map<String, Object> response = rpcConnection.sendJsonRequest("get_address", params);
 		log.debug("response => {}", response);
 		
-		Address address = JsonUtils.DEFAULT_MAPPER.fromJson(JsonUtils.DEFAULT_MAPPER.toJson(response.get("result")), Address.class);
+		Address address = JsonUtils.deserialize(MoneroRpcConnection.DEFAULT_MAPPER, JsonUtils.serialize(MoneroRpcConnection.DEFAULT_MAPPER, response.get("result")), Address.class);
 		log.debug("address => {}", address);
 		
 		return address.getAddress();
@@ -148,7 +148,7 @@ public class MoneroWalletRpc {
 		Map<String, Object> response = rpcConnection.sendJsonRequest("get_balance");
 		log.debug("response => {}", response);
 		
-		Balance balance = JsonUtils.DEFAULT_MAPPER.fromJson(JsonUtils.DEFAULT_MAPPER.toJson(response.get("result")), Balance.class);
+		Balance balance = JsonUtils.deserialize(MoneroRpcConnection.DEFAULT_MAPPER, JsonUtils.serialize(MoneroRpcConnection.DEFAULT_MAPPER, response.get("result")), Balance.class);
 		log.debug("balance => {}", balance);
 		
 		return balance;
@@ -166,7 +166,7 @@ public class MoneroWalletRpc {
 		Map<String, Object> response = rpcConnection.sendJsonRequest("transfer", request);
 		log.debug("response => {}", response);
 
-		MoneroTx moneroTx = JsonUtils.DEFAULT_MAPPER.fromJson(JsonUtils.DEFAULT_MAPPER.toJson(response.get("result")), MoneroTx.class);
+		MoneroTx moneroTx = JsonUtils.deserialize(MoneroRpcConnection.DEFAULT_MAPPER, JsonUtils.serialize(MoneroRpcConnection.DEFAULT_MAPPER, response.get("result")), MoneroTx.class);
 		log.debug("moneroTx => {}", moneroTx);
 		
 		return moneroTx;
@@ -201,7 +201,7 @@ public class MoneroWalletRpc {
 			params.put("in", true);
 			response = rpcConnection.sendJsonRequest("get_transfers", params);	
 			log.debug("response => {}", response);
-			MoneroTransferList transferList = JsonUtils.DEFAULT_MAPPER.fromJson(JsonUtils.DEFAULT_MAPPER.toJson(response.get("result")), MoneroTransferList.class);
+			MoneroTransferList transferList = JsonUtils.deserialize(MoneroRpcConnection.DEFAULT_MAPPER, JsonUtils.serialize(MoneroRpcConnection.DEFAULT_MAPPER, response.get("result")), MoneroTransferList.class);
 			transfers.addAll(transferList.getIn());
 			transfers.addAll(transferList.getOut());
 			transfers.addAll(transferList.getPending());
@@ -215,11 +215,15 @@ public class MoneroWalletRpc {
 				response = rpcConnection.sendJsonRequest("get_transfer_by_txid", params);
 				log.debug("response => {}", response);
 <<<<<<< Upstream, based on branch 'master' of https://github.com/bisq-network/incubator-bisq-xmr-integration.git
+<<<<<<< Upstream, based on branch 'master' of https://github.com/bisq-network/incubator-bisq-xmr-integration.git
 				MoneroTransfer transfer = GSON.fromJson(GSON.toJson(response.get("transfer")), MoneroTransfer.class);
 >>>>>>> cf956db Fully functional and basic Monero (XMR) wallet integrated to Monero RPC Wallet running on localhost with the following features:
 =======
 				MoneroTransfer transfer = JsonUtils.DEFAULT_MAPPER.fromJson(JsonUtils.DEFAULT_MAPPER.toJson(response.get("transfer")), MoneroTransfer.class);
 >>>>>>> 6ce3ef0 Completing the switch from Jackson to Gson.
+=======
+				MoneroTransfer transfer = JsonUtils.deserialize(MoneroRpcConnection.DEFAULT_MAPPER, JsonUtils.serialize(MoneroRpcConnection.DEFAULT_MAPPER, response.get("transfer")), MoneroTransfer.class);
+>>>>>>> 3bd2298 Code review updates.
 				transfers.add(transfer);
 			}
 		}

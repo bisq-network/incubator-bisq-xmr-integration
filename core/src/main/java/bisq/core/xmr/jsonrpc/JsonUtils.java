@@ -2,6 +2,7 @@ package bisq.core.xmr.jsonrpc;
 
 <<<<<<< Upstream, based on branch 'master' of https://github.com/bisq-network/incubator-bisq-xmr-integration.git
 <<<<<<< Upstream, based on branch 'master' of https://github.com/bisq-network/incubator-bisq-xmr-integration.git
+<<<<<<< Upstream, based on branch 'master' of https://github.com/bisq-network/incubator-bisq-xmr-integration.git
 import java.lang.reflect.Type;
 import java.util.Map;
 
@@ -164,19 +165,18 @@ public class JsonUtils {
 =======
 =======
 import java.io.IOException;
+=======
+>>>>>>> 3bd2298 Code review updates.
 import java.lang.reflect.Type;
+<<<<<<< Upstream, based on branch 'master' of https://github.com/bisq-network/incubator-bisq-xmr-integration.git
 import java.math.BigDecimal;
 import java.math.BigInteger;
 >>>>>>> 6ce3ef0 Completing the switch from Jackson to Gson.
+=======
+>>>>>>> 3bd2298 Code review updates.
 import java.util.Map;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonSyntaxException;
-import com.google.gson.TypeAdapter;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonToken;
-import com.google.gson.stream.JsonWriter;
 
 /**
  * Collection of utilities for working with JSON.
@@ -185,6 +185,7 @@ import com.google.gson.stream.JsonWriter;
  */
 public class JsonUtils {
 
+<<<<<<< Upstream, based on branch 'master' of https://github.com/bisq-network/incubator-bisq-xmr-integration.git
 <<<<<<< Upstream, based on branch 'master' of https://github.com/bisq-network/incubator-bisq-xmr-integration.git
   /**
    * Converts a JSON string to a map.
@@ -253,6 +254,10 @@ public class JsonUtils {
 					out.value(value);
 				}
 			}).create();
+=======
+	// set up Gson object mapper
+	private static final Gson DEFAULT_MAPPER = new Gson();
+>>>>>>> 3bd2298 Code review updates.
 
 	/**
 	 * Serializes an object to a JSON string.
