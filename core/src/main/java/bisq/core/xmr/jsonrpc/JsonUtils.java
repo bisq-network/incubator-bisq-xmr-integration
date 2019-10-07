@@ -27,6 +27,7 @@ public class JsonUtils {
 	 */
 	public static String serialize(Object obj) {
 		return serialize(DEFAULT_MAPPER, obj);
+<<<<<<< Upstream, based on branch 'master' of https://github.com/bisq-network/incubator-bisq-xmr-integration.git
 	}
 
 	/**
@@ -268,6 +269,8 @@ public class JsonUtils {
 	 */
 	public static String serialize(Object obj) {
 		return DEFAULT_MAPPER.toJson(obj);
+=======
+>>>>>>> 06e6fd6 GsonBigIntegerTypeAdapter - Fixed adapter failing for numbers defaulting to scientific (exponential) notation. JsonUtils - Methods with no adapter call equivalent methods by passing the default adapter.
 	}
 
 	/**
@@ -331,7 +334,7 @@ public class JsonUtils {
 	 *         type
 	 */
 	public static <T> T deserialize(String json, Type type) {
-		return DEFAULT_MAPPER.fromJson(json, type);
+		return deserialize(DEFAULT_MAPPER, json, type);
 	}
 
 	/**

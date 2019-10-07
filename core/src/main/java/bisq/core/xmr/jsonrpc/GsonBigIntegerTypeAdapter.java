@@ -2,6 +2,7 @@ package bisq.core.xmr.jsonrpc;
 
 import java.io.IOException;
 <<<<<<< Upstream, based on branch 'master' of https://github.com/bisq-network/incubator-bisq-xmr-integration.git
+<<<<<<< Upstream, based on branch 'master' of https://github.com/bisq-network/incubator-bisq-xmr-integration.git
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -57,6 +58,9 @@ public class GsonBigIntegerTypeAdapter extends TypeAdapter<Object> {
         String n = in.nextString();
         return new BigDecimal(n).toBigIntegerExact();
 =======
+=======
+import java.math.BigDecimal;
+>>>>>>> 06e6fd6 GsonBigIntegerTypeAdapter - Fixed adapter failing for numbers defaulting to scientific (exponential) notation. JsonUtils - Methods with no adapter call equivalent methods by passing the default adapter.
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -109,8 +113,12 @@ public class GsonBigIntegerTypeAdapter extends TypeAdapter<Object> {
       case NUMBER:
         //return in.nextDouble();
         String n = in.nextString();
+<<<<<<< Upstream, based on branch 'master' of https://github.com/bisq-network/incubator-bisq-xmr-integration.git
         return new BigInteger(n);
 >>>>>>> 3bd2298 Code review updates.
+=======
+        return new BigDecimal(n).toBigIntegerExact();
+>>>>>>> 06e6fd6 GsonBigIntegerTypeAdapter - Fixed adapter failing for numbers defaulting to scientific (exponential) notation. JsonUtils - Methods with no adapter call equivalent methods by passing the default adapter.
 
       case BOOLEAN:
         return in.nextBoolean();
