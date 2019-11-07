@@ -49,7 +49,7 @@ public class AltCoinWalletsView extends ActivatableView<TabPane, Void> {
         
     	root.setPadding(new Insets(20));
         navigationListener = viewPath -> {
-        	log.debug("navigationListener.viewPath1=" + viewPath);
+        	log.debug("navigationListener.viewPath1={}", viewPath);
         	if(selectedTab == null) {
         		selectedTab = moneroWalletTab;
         	}
@@ -57,7 +57,7 @@ public class AltCoinWalletsView extends ActivatableView<TabPane, Void> {
         		currentTabView = XmrWalletView.class;
         	}//TODO Tabs for other altcoins added here
         	navigation.navigateTo(MainView.class, AccountView.class, AltCoinWalletsView.class, currentTabView);
-        	log.debug("navigationListener.viewPath2=" + viewPath);
+        	log.debug("navigationListener.viewPath2={}", viewPath);
             if (viewPath.size() == 4 && viewPath.indexOf(AccountView.class) == 1) {
             	loadView(viewPath.tip());
             } else {
@@ -66,8 +66,8 @@ public class AltCoinWalletsView extends ActivatableView<TabPane, Void> {
         };
 
         tabChangeListener = (ov, oldValue, newValue) -> {
-        	log.debug("tabChangeListener.oldValue=" + oldValue);
-        	log.debug("tabChangeListener.newValue=" + newValue);
+        	log.debug("tabChangeListener.oldValue={}", oldValue);
+        	log.debug("tabChangeListener.newValue={}", newValue);
             if (newValue == moneroWalletTab && selectedTab != moneroWalletTab) {
             	loadView(XmrWalletView.class);
             }

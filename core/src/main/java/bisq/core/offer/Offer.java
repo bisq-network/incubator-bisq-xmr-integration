@@ -411,6 +411,7 @@ public class Offer implements NetworkPayload, PersistablePayload {
         return offerPayload.getCountryCode();
     }
 
+    //TODO(niyid) Look into this hardcoding of BTC
     public String getCurrencyCode() {
         return offerPayload.getBaseCurrencyCode().equals("BTC") ?
                 offerPayload.getCounterCurrencyCode() :

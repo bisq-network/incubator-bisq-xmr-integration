@@ -34,6 +34,8 @@ import bisq.desktop.main.market.MarketView;
 import bisq.desktop.main.market.offerbook.OfferBookChartView;
 import bisq.desktop.main.offer.BuyOfferView;
 import bisq.desktop.main.offer.SellOfferView;
+import bisq.desktop.main.offer.TradeBtcBaseView;
+import bisq.desktop.main.offer.xmr.TradeXmrBaseView;
 import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.main.portfolio.PortfolioView;
 import bisq.desktop.main.settings.SettingsView;
@@ -47,6 +49,7 @@ import bisq.core.exceptions.BisqException;
 import bisq.core.locale.GlobalSettings;
 import bisq.core.locale.LanguageUtil;
 import bisq.core.locale.Res;
+import bisq.core.user.Preferences;
 import bisq.core.util.BSFormatter;
 
 import bisq.common.Timer;
@@ -112,6 +115,9 @@ import static javafx.scene.layout.AnchorPane.setTopAnchor;
 @Slf4j
 public class MainView extends InitializableView<StackPane, MainViewModel>
         implements DaoStateMonitoringService.Listener {
+
+	public static enum TradeBaseCurrency {BTC, XMR};
+	
     // If after 30 sec we have not got connected we show "open network settings" button
     private final static int SHOW_TOR_SETTINGS_DELAY_SEC = 90;
     private Label versionLabel;
@@ -158,6 +164,7 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
     private Label btcSplashInfo;
     private Popup<?> p2PNetworkWarnMsgPopup, btcNetworkWarnMsgPopup;
     private final DaoStateMonitoringService daoStateMonitoringService;
+    private final Preferences preferences;
 
     @Inject
     public MainView(MainViewModel model,
@@ -165,13 +172,15 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
                     Navigation navigation,
                     Transitions transitions,
                     BSFormatter formatter,
-                    DaoStateMonitoringService daoStateMonitoringService) {
+                    DaoStateMonitoringService daoStateMonitoringService,
+                    Preferences preferences) {
         super(model);
         this.viewLoader = viewLoader;
         this.navigation = navigation;
         this.formatter = formatter;
         MainView.transitions = transitions;
         this.daoStateMonitoringService = daoStateMonitoringService;
+        this.preferences = preferences;
     }
 
     @Override
@@ -179,8 +188,10 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
         MainView.rootContainer = root;
 
         ToggleButton marketButton = new NavButton(MarketView.class, Res.get("mainView.menu.market").toUpperCase());
-        ToggleButton buyButton = new NavButton(BuyOfferView.class, Res.get("mainView.menu.buyBtc").toUpperCase());
-        ToggleButton sellButton = new NavButton(SellOfferView.class, Res.get("mainView.menu.sellBtc").toUpperCase());
+//        ToggleButton buyButton = new NavButton(BuyOfferView.class, Res.get("mainView.menu.buyBtc").toUpperCase());
+//        ToggleButton sellButton = new NavButton(SellOfferView.class, Res.get("mainView.menu.sellBtc").toUpperCase());
+        ToggleButton tradeBtcButton = new NavButton(TradeBtcBaseView.class, Res.get("mainView.menu.trade", "BTC").toUpperCase());
+        ToggleButton tradeXmrButton = new NavButton(TradeXmrBaseView.class, Res.get("mainView.menu.trade", "XMR").toUpperCase());
         ToggleButton portfolioButton = new NavButton(PortfolioView.class, Res.get("mainView.menu.portfolio").toUpperCase());
         ToggleButton fundsButton = new NavButton(FundsView.class, Res.get("mainView.menu.funds").toUpperCase());
 
@@ -207,9 +218,11 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
                     if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT1, keyEvent)) {
                         marketButton.fire();
                     } else if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT2, keyEvent)) {
-                        buyButton.fire();
+                        tradeBtcButton.fire();
                     } else if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT3, keyEvent)) {
-                        sellButton.fire();
+                        if(preferences.isUseBisqXmrWallet()) {
+                            tradeXmrButton.fire();
+                        }
                     } else if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT4, keyEvent)) {
                         portfolioButton.fire();
                     } else if (Utilities.isAltOrCtrlPressed(KeyCode.DIGIT5, keyEvent)) {
@@ -318,8 +331,9 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
             }
         });
 
-        HBox primaryNav = new HBox(marketButton, getNavigationSeparator(), buyButton, getNavigationSeparator(),
-                sellButton, getNavigationSeparator(), portfolioButtonWithBadge, getNavigationSeparator(), fundsButton);
+        HBox primaryNav = preferences.isUseBisqXmrWallet() ? new HBox(marketButton, getNavigationSeparator(), tradeBtcButton, getNavigationSeparator(),
+                tradeXmrButton, getNavigationSeparator(), portfolioButtonWithBadge, getNavigationSeparator(), fundsButton) : new HBox(marketButton, getNavigationSeparator(), tradeBtcButton, getNavigationSeparator(),
+                portfolioButtonWithBadge, getNavigationSeparator(), fundsButton);
 
         primaryNav.setAlignment(Pos.CENTER_LEFT);
         primaryNav.getStyleClass().add("nav-primary");

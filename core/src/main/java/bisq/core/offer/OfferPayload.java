@@ -108,8 +108,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     private final long amount;
     private final long minAmount;
 
-    // For fiat offer the baseCurrencyCode is BTC and the counterCurrencyCode is the fiat currency
-    // For altcoin offers it is the opposite. baseCurrencyCode is the altcoin and the counterCurrencyCode is BTC.
+    // For fiat offer the baseCurrencyCode is BTC/XMR and the counterCurrencyCode is the fiat currency
+    // For altcoin offers it is the opposite. baseCurrencyCode is the altcoin and the counterCurrencyCode is BTC/XMR.
     private final String baseCurrencyCode;
     private final String counterCurrencyCode;
 
@@ -381,6 +381,7 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     // Altcoins have base currency Altcoin and counterCurrency BTC
     // The rest of the app does not support yet that concept of base currency and counter currencies
     // so we map here for convenience
+    //TODO(niyid) This mapping has to be checked; simple solution = BTC|XMR
     public String getCurrencyCode() {
         return getBaseCurrencyCode().equals("BTC") ? getCounterCurrencyCode() : getBaseCurrencyCode();
     }

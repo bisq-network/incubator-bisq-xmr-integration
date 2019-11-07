@@ -17,6 +17,7 @@
 
 package bisq.desktop.main.offer.offerbook;
 
+import bisq.core.locale.CurrencyUtil;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferBookService;
 import bisq.core.trade.TradeManager;
@@ -30,6 +31,7 @@ import javafx.collections.ObservableList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
@@ -106,12 +108,48 @@ public class OfferBook {
         return offerBookListItems;
     }
 
+    //TODO(niyid) Pass counterCurrencyCode/baseCurrencyCode with value BTC|XMR to filter accordingly 
+    //TODO(niyid) Alternatively and better, have a separate fillOfferBookListItems for XMR
     public void fillOfferBookListItems() {
         try {
             // setAll causes sometimes an UnsupportedOperationException
             // Investigate why....
             offerBookListItems.clear();
             offerBookListItems.addAll(offerBookService.getOffers().stream()
+            		.filter(new Predicate<>() {
+
+						@Override
+						public boolean test(Offer o) {
+							return CurrencyUtil.isFiatCurrency(o.getCurrencyCode()) ? 
+									"BTC".equals(o.getOfferPayload().getBaseCurrencyCode()) :
+									"BTC".equals(o.getOfferPayload().getCounterCurrencyCode());
+						}
+					})
+                    .map(OfferBookListItem::new)
+                    .collect(Collectors.toList()));
+
+            log.debug("offerBookListItems.size {}", offerBookListItems.size());
+            fillOfferCountMaps();
+        } catch (Throwable t) {
+            t.printStackTrace();
+            log.error("Error at fillOfferBookListItems: " + t.toString());
+        }
+    }
+    public void fillXmrOfferBookListItems() {
+        try {
+            // setAll causes sometimes an UnsupportedOperationException
+            // Investigate why....
+            offerBookListItems.clear();
+            offerBookListItems.addAll(offerBookService.getOffers().stream()
+            		.filter(new Predicate<>() {
+
+						@Override
+						public boolean test(Offer o) {
+							return CurrencyUtil.isFiatCurrency(o.getCurrencyCode()) ? 
+									"XMR".equals(o.getOfferPayload().getBaseCurrencyCode()) :
+									"XMR".equals(o.getOfferPayload().getCounterCurrencyCode());
+						}
+					})
                     .map(OfferBookListItem::new)
                     .collect(Collectors.toList()));
 

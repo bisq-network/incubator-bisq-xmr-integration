@@ -15,15 +15,16 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.desktop.main.offer;
+package bisq.desktop.main.offer.xmr;
 
 import bisq.desktop.Navigation;
 import bisq.desktop.common.view.ActivatableView;
 import bisq.desktop.common.view.View;
 import bisq.desktop.common.view.ViewLoader;
 import bisq.desktop.main.MainView;
-import bisq.desktop.main.offer.createoffer.CreateOfferView;
-import bisq.desktop.main.offer.offerbook.OfferBookView;
+import bisq.desktop.main.offer.xmr.createoffer.CreateXmrOfferView;
+import bisq.desktop.main.offer.xmr.offerbook.OfferXmrBookView;
+import bisq.desktop.main.offer.xmr.takeoffer.TakeXmrOfferView;
 import bisq.desktop.main.offer.takeoffer.TakeOfferView;
 import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.util.GUIUtil;
@@ -55,11 +56,11 @@ import java.util.stream.Collectors;
 
 import static bisq.desktop.main.offer.MutableOfferView.BUYER_SECURITY_DEPOSIT_NEWS;
 
-public abstract class OfferView extends ActivatableView<TabPane, Void> {
+public abstract class OfferXmrView extends ActivatableView<TabPane, Void> {
 
-    private OfferBookView offerBookView;
-    private CreateOfferView createOfferView;
-    private TakeOfferView takeOfferView;
+    private OfferXmrBookView offerBookView;
+    private CreateXmrOfferView createOfferView;
+    private TakeXmrOfferView takeOfferView;
     private AnchorPane createOfferPane, takeOfferPane;
     private Tab takeOfferTab, createOfferTab, offerBookTab;
 
@@ -78,7 +79,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
     private ChangeListener<Tab> tabChangeListener;
     private ListChangeListener<Tab> tabListChangeListener;
 
-    protected OfferView(ViewLoader viewLoader,
+    protected OfferXmrView(ViewLoader viewLoader,
                         Navigation navigation,
                         Preferences preferences,
                         ArbitratorManager arbitratorManager,
@@ -89,13 +90,14 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
         this.preferences = preferences;
         this.user = user;
         this.p2PService = p2PService;
-        this.direction = (this instanceof BuyOfferView) ? OfferPayload.Direction.BUY : OfferPayload.Direction.SELL;
+        this.direction = (this instanceof BuyXmrOfferView) ? OfferPayload.Direction.BUY : OfferPayload.Direction.SELL;
         this.arbitratorManager = arbitratorManager;
     }
 
     @Override
     protected void initialize() {
         navigationListener = viewPath -> {
+        	log.info("viewPath={}", viewPath);
             if (viewPath.size() == 4 && viewPath.indexOf(this.getClass()) == 2)
                 loadView(viewPath.tip());
         };
@@ -133,7 +135,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
 
     @Override
     protected void activate() {
-        Optional<TradeCurrency> tradeCurrencyOptional = (this instanceof SellOfferView) ?
+        Optional<TradeCurrency> tradeCurrencyOptional = (this instanceof SellXmrOfferView) ?
                 CurrencyUtil.getTradeCurrency(preferences.getSellScreenCurrencyCode()) :
                 CurrencyUtil.getTradeCurrency(preferences.getBuyScreenCurrencyCode());
         tradeCurrency = tradeCurrencyOptional.orElseGet(GlobalSettings::getDefaultTradeCurrency);
@@ -141,7 +143,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
         root.getSelectionModel().selectedItemProperty().addListener(tabChangeListener);
         root.getTabs().addListener(tabListChangeListener);
         navigation.addListener(navigationListener);
-        navigation.navigateTo(MainView.class, TradeBtcBaseView.class, this.getClass(), OfferBookView.class);
+        navigation.navigateTo(MainView.class, TradeXmrBaseView.class, this.getClass(), OfferXmrBookView.class);
     }
 
     @Override
@@ -165,7 +167,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
         View view;
         boolean isBuy = direction == OfferPayload.Direction.BUY;
 
-        if (viewClass == OfferBookView.class && offerBookView == null) {
+        if (viewClass == OfferXmrBookView.class && offerBookView == null) {
             view = viewLoader.load(viewClass);
             // Offerbook must not be cached by ViewLoader as we use 2 instances for sell and buy screens.
 //            offerBookTab = new Tab(isBuy ? Res.get("shared.buyBitcoin").toUpperCase() : Res.get("shared.sellBitcoin").toUpperCase());
@@ -173,7 +175,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
             offerBookTab.setClosable(false);
             offerBookTab.setContent(view.getRoot());
             tabPane.getTabs().add(offerBookTab);
-            offerBookView = (OfferBookView) view;
+            offerBookView = (OfferXmrBookView) view;
             offerBookView.onTabSelected(true);
 
             OfferActionHandler offerActionHandler = new OfferActionHandler() {
@@ -201,11 +203,11 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
             };
             offerBookView.setOfferActionHandler(offerActionHandler);
             offerBookView.setDirection(direction);
-        } else if (viewClass == CreateOfferView.class && createOfferView == null) {
+        } else if (viewClass == CreateXmrOfferView.class && createOfferView == null) {
             view = viewLoader.load(viewClass);
             // CreateOffer and TakeOffer must not be cached by ViewLoader as we cannot use a view multiple times
             // in different graphs
-            createOfferView = (CreateOfferView) view;
+            createOfferView = (CreateXmrOfferView) view;
             createOfferView.initWithData(direction, tradeCurrency);
             createOfferPane = createOfferView.getRoot();
             createOfferTab = new Tab(getCreateOfferTabName());
@@ -219,7 +221,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
             view = viewLoader.load(viewClass);
             // CreateOffer and TakeOffer must not be cached by ViewLoader as we cannot use a view multiple times
             // in different graphs
-            takeOfferView = (TakeOfferView) view;
+            takeOfferView = (TakeXmrOfferView) view;
             takeOfferView.initWithData(offer);
             takeOfferPane = ((TakeOfferView) view).getRoot();
             takeOfferTab = new Tab(getTakeOfferTabName());
@@ -255,15 +257,15 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
     }
 
     private void openTakeOffer(Offer offer) {
-        OfferView.this.takeOfferViewOpen = true;
-        OfferView.this.offer = offer;
-        OfferView.this.navigation.navigateTo(MainView.class, TradeBtcBaseView.class, OfferView.this.getClass(), TakeOfferView.class);
+        OfferXmrView.this.takeOfferViewOpen = true;
+        OfferXmrView.this.offer = offer;
+        OfferXmrView.this.navigation.navigateTo(MainView.class, TradeXmrBaseView.class, OfferXmrView.this.getClass(), TakeXmrOfferView.class);
     }
 
     private void openCreateOffer(TradeCurrency tradeCurrency) {
-        OfferView.this.createOfferViewOpen = true;
-        OfferView.this.tradeCurrency = tradeCurrency;
-        OfferView.this.navigation.navigateTo(MainView.class, TradeBtcBaseView.class, OfferView.this.getClass(), CreateOfferView.class);
+        OfferXmrView.this.createOfferViewOpen = true;
+        OfferXmrView.this.tradeCurrency = tradeCurrency;
+        OfferXmrView.this.navigation.navigateTo(MainView.class, TradeXmrBaseView.class, OfferXmrView.this.getClass(), CreateXmrOfferView.class);
     }
 
     private void onCreateOfferViewRemoved() {
@@ -274,7 +276,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
         }
         offerBookView.enableCreateOfferButton();
 
-        navigation.navigateTo(MainView.class, TradeBtcBaseView.class, this.getClass(), OfferBookView.class);
+        navigation.navigateTo(MainView.class, TradeXmrBaseView.class, this.getClass(), OfferXmrBookView.class);
 
         preferences.dontShowAgain(BUYER_SECURITY_DEPOSIT_NEWS, true);
     }
@@ -287,7 +289,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
             takeOfferView = null;
         }
 
-        navigation.navigateTo(MainView.class, TradeBtcBaseView.class, this.getClass(), OfferBookView.class);
+        navigation.navigateTo(MainView.class, TradeXmrBaseView.class, this.getClass(), OfferXmrBookView.class);
     }
 
     public interface OfferActionHandler {
