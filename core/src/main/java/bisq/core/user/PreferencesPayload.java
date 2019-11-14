@@ -125,7 +125,6 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private int ignoreDustThreshold = 600;
     private double buyerSecurityDepositAsPercentForCrypto = getDefaultBuyerSecurityDepositAsPercent(new CryptoCurrencyAccount());
     private int blockNotifyPort;
-    private int cssTheme;
     private boolean tacAcceptedV120;
     
     private boolean useBisqXmrWallet = false;
@@ -181,6 +180,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 .setDirectoryChooserPath(directoryChooserPath)
                 .setBuyerSecurityDepositAsLong(buyerSecurityDepositAsLong)
                 .setUseAnimations(useAnimations)
+                .setCssTheme(cssTheme)
                 .setPayFeeInBtc(payFeeInBtc)
                 .setBridgeOptionOrdinal(bridgeOptionOrdinal)
                 .setTorTransportOrdinal(torTransportOrdinal)
@@ -195,9 +195,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 .setIgnoreDustThreshold(ignoreDustThreshold)
                 .setBuyerSecurityDepositAsPercentForCrypto(buyerSecurityDepositAsPercentForCrypto)
                 .setBlockNotifyPort(blockNotifyPort)
-                .setTacAcceptedV120(tacAcceptedV120);
-                .setBlockNotifyPort(blockNotifyPort)
-                .setCssTheme(cssTheme)
+                .setTacAcceptedV120(tacAcceptedV120)
                 .setUseBisqXmrWallet(useBisqXmrWallet)
                 .setXmrUserHost(xmrUserHost)
                 .setXmrHostPort(xmrHostPort)
@@ -291,8 +289,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 proto.getIgnoreDustThreshold(),
                 proto.getBuyerSecurityDepositAsPercentForCrypto(),
                 proto.getBlockNotifyPort(),
-                proto.getTacAcceptedV120());
-                proto.getBlockNotifyPort(),
+                proto.getTacAcceptedV120(),
 	            proto.getUseBisqXmrWallet(),
 	            proto.getXmrUserHost(),
 	            proto.getXmrHostPort(),

@@ -55,6 +55,7 @@ import bisq.network.p2p.P2PService;
 
 import bisq.common.app.Version;
 import bisq.common.crypto.KeyRing;
+import bisq.common.util.MathUtils;
 import bisq.common.util.Tuple2;
 import bisq.common.util.Utilities;
 
@@ -580,10 +581,11 @@ public abstract class MutableOfferDataModel extends OfferDataModel implements Bs
     }
 
     long getMaxTradeLimit() {
-        if (paymentAccount != null)
-            return AccountAgeRestrictions.getMyTradeLimitAtCreateOffer(accountAgeWitnessService, paymentAccount, tradeCurrencyCode.get(), direction);
-        else
+        if (paymentAccount != null) {
+            return accountAgeWitnessService.getMyTradeLimit(paymentAccount, tradeCurrencyCode.get(), direction);
+        } else {
             return 0;
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////

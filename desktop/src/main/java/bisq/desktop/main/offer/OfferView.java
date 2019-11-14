@@ -141,7 +141,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
         root.getSelectionModel().selectedItemProperty().addListener(tabChangeListener);
         root.getTabs().addListener(tabListChangeListener);
         navigation.addListener(navigationListener);
-        navigation.navigateTo(MainView.class, TradeBtcBaseView.class, this.getClass(), OfferBookView.class);
+        navigation.navigateTo(MainView.class, TradeBaseView.class, this.getClass(), OfferBookView.class);
     }
 
     @Override
@@ -257,13 +257,13 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
     private void openTakeOffer(Offer offer) {
         OfferView.this.takeOfferViewOpen = true;
         OfferView.this.offer = offer;
-        OfferView.this.navigation.navigateTo(MainView.class, TradeBtcBaseView.class, OfferView.this.getClass(), TakeOfferView.class);
+        OfferView.this.navigation.navigateTo(MainView.class, TradeBaseView.class, OfferView.this.getClass(), TakeOfferView.class);
     }
 
     private void openCreateOffer(TradeCurrency tradeCurrency) {
         OfferView.this.createOfferViewOpen = true;
         OfferView.this.tradeCurrency = tradeCurrency;
-        OfferView.this.navigation.navigateTo(MainView.class, TradeBtcBaseView.class, OfferView.this.getClass(), CreateOfferView.class);
+        OfferView.this.navigation.navigateTo(MainView.class, TradeBaseView.class, OfferView.this.getClass(), CreateOfferView.class);
     }
 
     private void onCreateOfferViewRemoved() {
@@ -274,7 +274,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
         }
         offerBookView.enableCreateOfferButton();
 
-        navigation.navigateTo(MainView.class, TradeBtcBaseView.class, this.getClass(), OfferBookView.class);
+        navigation.navigateTo(MainView.class, TradeBaseView.class, this.getClass(), OfferBookView.class);
 
         preferences.dontShowAgain(BUYER_SECURITY_DEPOSIT_NEWS, true);
     }
@@ -287,7 +287,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
             takeOfferView = null;
         }
 
-        navigation.navigateTo(MainView.class, TradeBtcBaseView.class, this.getClass(), OfferBookView.class);
+        navigation.navigateTo(MainView.class, TradeBaseView.class, this.getClass(), OfferBookView.class);
     }
 
     public interface OfferActionHandler {

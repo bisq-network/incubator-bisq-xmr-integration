@@ -21,7 +21,7 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Tab?>
-<JFXTabPane fx:id="root" fx:controller="bisq.desktop.main.offer.TradeBtcBaseView"
+<JFXTabPane fx:id="root" fx:controller="bisq.desktop.main.offer.TradeBaseView"
             AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="15"
             AnchorPane.rightAnchor="0" AnchorPane.topAnchor="15"
             xmlns:fx="http://javafx.com/fxml">

@@ -17,6 +17,8 @@
 
 package bisq.desktop.main.offer;
 
+import javax.inject.Inject;
+
 import bisq.core.locale.Res;
 import bisq.core.user.Preferences;
 import bisq.desktop.Navigation;
@@ -33,7 +35,7 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 
-public abstract class TradeBaseView extends ActivatableViewAndModel<TabPane, Activatable> {
+public class TradeBaseView extends ActivatableViewAndModel<TabPane, Activatable> {
 	
 	@FXML
     protected Tab tradeBuyTab, tradeSellTab;
@@ -46,15 +48,14 @@ public abstract class TradeBaseView extends ActivatableViewAndModel<TabPane, Act
     private Tab selectedTab;
     private final Preferences preferences;
 	private TradeBaseCurrency selectedBaseCurrency = TradeBaseCurrency.BTC;
-	private Class<? extends OfferView> buyOfferViewClass;
-	private Class<? extends OfferView> sellOfferViewClass;
+	private Class<? extends OfferView> buyOfferViewClass = BuyOfferView.class;
+	private Class<? extends OfferView> sellOfferViewClass = SellOfferView.class;
 
-    protected TradeBaseView(CachingViewLoader viewLoader, Navigation navigation, Preferences preferences, Class<? extends OfferView> buyOfferViewClass, Class<? extends OfferView> sellOfferViewClass) {
+	@Inject
+    public TradeBaseView(CachingViewLoader viewLoader, Navigation navigation, Preferences preferences) {
         this.viewLoader = viewLoader;
         this.navigation = navigation;
         this.preferences = preferences;
-        this.buyOfferViewClass = buyOfferViewClass;
-        this.sellOfferViewClass = sellOfferViewClass;
     }
 
     @Override

@@ -34,8 +34,8 @@ import bisq.desktop.main.market.MarketView;
 import bisq.desktop.main.market.offerbook.OfferBookChartView;
 import bisq.desktop.main.offer.BuyOfferView;
 import bisq.desktop.main.offer.SellOfferView;
-import bisq.desktop.main.offer.TradeBtcBaseView;
-import bisq.desktop.main.offer.xmr.TradeXmrBaseView;
+import bisq.desktop.main.offer.TradeBaseView;
+import bisq.desktop.main.offer.xmr.XmrTradeBaseView;
 import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.main.portfolio.PortfolioView;
 import bisq.desktop.main.settings.SettingsView;
@@ -189,9 +189,9 @@ public class MainView extends InitializableView<StackPane, MainViewModel>
 
         ToggleButton marketButton = new NavButton(MarketView.class, Res.get("mainView.menu.market").toUpperCase());
 //        ToggleButton buyButton = new NavButton(BuyOfferView.class, Res.get("mainView.menu.buyBtc").toUpperCase());
-//        ToggleButton sellButton = new NavButton(SellOfferView.class, Res.get("mainView.menu.sellBtc").toUpperCase());
-        ToggleButton tradeBtcButton = new NavButton(TradeBtcBaseView.class, Res.get("mainView.menu.trade", "BTC").toUpperCase());
-        ToggleButton tradeXmrButton = new NavButton(TradeXmrBaseView.class, Res.get("mainView.menu.trade", "XMR").toUpperCase());
+//        ToggleButton sellButton = new NavButton(XmrSellOfferView.class, Res.get("mainView.menu.sellBtc").toUpperCase());
+        ToggleButton tradeBtcButton = new NavButton(TradeBaseView.class, Res.get("mainView.menu.trade", "BTC").toUpperCase());
+        ToggleButton tradeXmrButton = new NavButton(XmrTradeBaseView.class, Res.get("mainView.menu.trade", "XMR").toUpperCase());
         ToggleButton portfolioButton = new NavButton(PortfolioView.class, Res.get("mainView.menu.portfolio").toUpperCase());
         ToggleButton fundsButton = new NavButton(FundsView.class, Res.get("mainView.menu.funds").toUpperCase());
 
