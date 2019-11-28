@@ -41,7 +41,7 @@ public class MoneroTransfer implements Serializable {
 	
 	@Expose
 	@SerializedName(value = "subaddr_index")
-	private SubAddressIndex subaddrIndex;
+	private AddressIndex subaddrIndex;
 	
 	@Expose
 	@SerializedName(value = "suggested_confirmations_threshold")
@@ -134,11 +134,11 @@ public class MoneroTransfer implements Serializable {
 		this.paymentId = paymentId;
 	}
 
-	public SubAddressIndex getSubaddrIndex() {
+	public AddressIndex getSubaddrIndex() {
 		return subaddrIndex;
 	}
 
-	public void setSubaddrIndex(SubAddressIndex subaddrIndex) {
+	public void setSubaddrIndex(AddressIndex subaddrIndex) {
 		this.subaddrIndex = subaddrIndex;
 	}
 

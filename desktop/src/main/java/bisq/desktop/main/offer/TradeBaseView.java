@@ -20,6 +20,8 @@ package bisq.desktop.main.offer;
 import javax.inject.Inject;
 
 import bisq.core.locale.Res;
+import bisq.core.trade.Trade;
+import bisq.core.trade.Trade.TradeBaseCurrency;
 import bisq.core.user.Preferences;
 import bisq.desktop.Navigation;
 import bisq.desktop.common.model.Activatable;
@@ -28,7 +30,6 @@ import bisq.desktop.common.view.CachingViewLoader;
 import bisq.desktop.common.view.View;
 import bisq.desktop.common.view.ViewLoader;
 import bisq.desktop.main.MainView;
-import bisq.desktop.main.MainView.TradeBaseCurrency;
 import javafx.beans.value.ChangeListener;
 import javafx.fxml.FXML;
 import javafx.scene.control.ScrollPane;
@@ -47,7 +48,7 @@ public class TradeBaseView extends ActivatableViewAndModel<TabPane, Activatable>
     private final Navigation navigation;
     private Tab selectedTab;
     private final Preferences preferences;
-	private TradeBaseCurrency selectedBaseCurrency = TradeBaseCurrency.BTC;
+	private Trade.TradeBaseCurrency selectedBaseCurrency = Trade.TradeBaseCurrency.BTC;
 	private Class<? extends OfferView> buyOfferViewClass = BuyOfferView.class;
 	private Class<? extends OfferView> sellOfferViewClass = SellOfferView.class;
 

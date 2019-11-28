@@ -21,6 +21,7 @@ public enum ParamType {
     UNDEFINED,
     BSQ,
     BTC,
+    XMR,
     PERCENT,
     BLOCK,
     ADDRESS

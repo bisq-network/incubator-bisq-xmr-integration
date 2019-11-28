@@ -19,22 +19,22 @@ package bisq.desktop.main.offer.xmr.createoffer;
 
 import bisq.desktop.Navigation;
 import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.main.offer.MutableOfferView;
+import bisq.desktop.main.offer.xmr.XmrMutableOfferView;
 import bisq.desktop.main.overlays.windows.OfferDetailsWindow;
 import bisq.desktop.util.Transitions;
 
 import bisq.core.user.Preferences;
-import bisq.core.util.BSFormatter;
+import bisq.core.util.XmrBSFormatter;
 import bisq.core.util.BsqFormatter;
 
 import com.google.inject.Inject;
 
 @FxmlView
-public class XmrCreateOfferView extends MutableOfferView<XmrCreateOfferViewModel> {
+public class XmrCreateOfferView extends XmrMutableOfferView<XmrCreateOfferViewModel> {
 
     @Inject
-    public XmrCreateOfferView(XmrCreateOfferViewModel model, Navigation navigation, Preferences preferences, Transitions transitions, OfferDetailsWindow offerDetailsWindow, BSFormatter btcFormatter, BsqFormatter bsqFormatter) {
-        super(model, navigation, preferences, transitions, offerDetailsWindow, btcFormatter, bsqFormatter);
+    public XmrCreateOfferView(XmrCreateOfferViewModel model, Navigation navigation, Preferences preferences, Transitions transitions, OfferDetailsWindow offerDetailsWindow, XmrBSFormatter xmrFormatter, BsqFormatter bsqFormatter) {
+        super(model, navigation, preferences, transitions, offerDetailsWindow, xmrFormatter, bsqFormatter);
     }
 }
 

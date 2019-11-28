@@ -1,13 +1,13 @@
 package bisq.desktop.main.offer.xmr;
 
-import bisq.core.btc.wallet.BsqWalletService;
-import bisq.core.offer.OfferUtil;
+import bisq.core.offer.XmrOfferUtil;
 import bisq.core.user.Preferences;
-
-import org.bitcoinj.core.Coin;
+import bisq.core.xmr.XmrCoin;
+import bisq.core.xmr.wallet.XmrWalletRpcWrapper;
 
 public class XmrMakerFeeProvider {
-    public Coin getMakerFee(BsqWalletService bsqWalletService, Preferences preferences, Coin amount) {
-        return OfferUtil.getMakerFee(bsqWalletService, preferences, amount);
+
+    public XmrCoin getMakerFee(XmrWalletRpcWrapper xmrWalletWrapper, Preferences preferences, XmrCoin amount, String price) {
+        return XmrOfferUtil.getMakerFee(xmrWalletWrapper, preferences, amount, price);
     }
 }

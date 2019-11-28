@@ -53,7 +53,8 @@ public class XmrValidator extends AltcoinValidator {
     public XmrValidator(XmrFormatter xmrFormatter) {
         this.xmrFormatter = xmrFormatter;
         // Limit to avoid overflows
-        setMaxValue(new BigInteger("1840000000000000000"));
+        //TODO(niyid) is this 276.360280 XMR = 2 BTC? Should be variable (dynamic) and based on market prices
+        setMaxValue(new BigInteger("276360280000000"));
         maxValueScaled = formatAsScaled(maxValue);
     }
 

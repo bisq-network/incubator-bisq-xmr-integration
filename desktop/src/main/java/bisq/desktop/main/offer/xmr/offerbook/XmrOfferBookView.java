@@ -27,10 +27,9 @@ import bisq.desktop.components.AutocompleteComboBox;
 import bisq.desktop.components.ColoredDecimalPlacesWithZerosText;
 import bisq.desktop.components.HyperlinkWithIcon;
 import bisq.desktop.components.InfoAutoTooltipLabel;
-import bisq.desktop.components.PeerInfoIcon;
+import bisq.desktop.components.XmrPeerInfoIcon;
 import bisq.desktop.components.TitledGroupBg;
 import bisq.desktop.main.MainView;
-import bisq.desktop.main.MainView.TradeBaseCurrency;
 import bisq.desktop.main.account.AccountView;
 import bisq.desktop.main.account.content.fiataccounts.FiatAccountsView;
 import bisq.desktop.main.funds.FundsView;
@@ -58,14 +57,16 @@ import bisq.core.offer.OfferPayload;
 import bisq.core.offer.OfferRestrictions;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.trade.Trade;
+import bisq.core.trade.Trade.TradeBaseCurrency;
 import bisq.core.user.DontShowAgainLookup;
-import bisq.core.util.BSFormatter;
+import bisq.core.util.XmrBSFormatter;
 
 import bisq.network.p2p.NodeAddress;
 
 import bisq.common.util.Tuple3;
 
-import org.bitcoinj.core.Coin;
+import bisq.core.xmr.XmrCoin;
 
 import com.google.inject.name.Named;
 
@@ -123,7 +124,7 @@ public class XmrOfferBookView extends ActivatableViewAndModel<GridPane, XmrOffer
 
     private final Navigation navigation;
     private final OfferDetailsWindow offerDetailsWindow;
-    private final BSFormatter formatter;
+    private final XmrBSFormatter formatter;
     private final PrivateNotificationManager privateNotificationManager;
     private final boolean useDevPrivilegeKeys;
     private final AccountAgeWitnessService accountAgeWitnessService;
@@ -142,6 +143,7 @@ public class XmrOfferBookView extends ActivatableViewAndModel<GridPane, XmrOffer
     private ChangeListener<Number> priceFeedUpdateCounterListener;
     private Subscription currencySelectionSubscriber;
     private static final int SHOW_ALL = 0;
+    
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
@@ -151,7 +153,7 @@ public class XmrOfferBookView extends ActivatableViewAndModel<GridPane, XmrOffer
     XmrOfferBookView(XmrOfferBookViewModel model,
                   Navigation navigation,
                   OfferDetailsWindow offerDetailsWindow,
-                  BSFormatter formatter,
+                  XmrBSFormatter formatter,
                   PrivateNotificationManager privateNotificationManager,
                   @Named(AppOptionKeys.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys,
                   AccountAgeWitnessService accountAgeWitnessService) {
@@ -239,7 +241,7 @@ public class XmrOfferBookView extends ActivatableViewAndModel<GridPane, XmrOffer
         tableView.setPlaceholder(placeholder);
 
         marketColumn.setComparator(Comparator.comparing(
-                o -> BSFormatter.getCurrencyPair(o.getOffer().getCurrencyCode()),
+                o -> XmrBSFormatter.getCurrencyPair(o.getOffer().getCurrencyCode()),
                 Comparator.nullsFirst(Comparator.naturalOrder())
         ));
         priceColumn.setComparator(Comparator.comparing(o -> o.getOffer().getPrice(), Comparator.nullsFirst(Comparator.naturalOrder())));
@@ -329,7 +331,7 @@ public class XmrOfferBookView extends ActivatableViewAndModel<GridPane, XmrOffer
                             tableView.getColumns().add(0, marketColumn);
                     } else {
                         volumeColumn.setTitleWithHelpText(Res.get("offerbook.volume", code), Res.get("shared.amountHelp"));
-                        priceColumn.setTitle(BSFormatter.getPriceWithCurrencyCode(code));
+                        priceColumn.setTitle(XmrBSFormatter.getPriceWithCurrencyCode(code));
                         priceColumn.getStyleClass().add("first-column");
 
                         tableView.getColumns().remove(marketColumn);
@@ -488,20 +490,20 @@ public class XmrOfferBookView extends ActivatableViewAndModel<GridPane, XmrOffer
             if (model.showAllTradeCurrenciesProperty.get()) {
                 offerButtonText = direction == OfferPayload.Direction.BUY ?
                         Res.get("offerbook.createOfferToBuy",
-                                TradeBaseCurrency.XMR) :
+                                Trade.TradeBaseCurrency.XMR) :
                         Res.get("offerbook.createOfferToSell",
-                                TradeBaseCurrency.XMR);
+                                Trade.TradeBaseCurrency.XMR);
             } else if (selectedTradeCurrency instanceof FiatCurrency) {
                 offerButtonText = direction == OfferPayload.Direction.BUY ?
                         Res.get("offerbook.createOfferToBuy.withFiat",
-                                TradeBaseCurrency.XMR, code) :
-                        Res.get("offerbook.createOfferToSell.forFiat", TradeBaseCurrency.XMR, code);
+                                Trade.TradeBaseCurrency.XMR, code) :
+                        Res.get("offerbook.createOfferToSell.forFiat", Trade.TradeBaseCurrency.XMR, code);
 
             } else {
                 offerButtonText = direction == OfferPayload.Direction.BUY ?
                         Res.get("offerbook.createOfferToBuy.withCrypto",
-                                code, TradeBaseCurrency.XMR) :
-                        Res.get("offerbook.createOfferToSell.forCrypto", code, TradeBaseCurrency.XMR);
+                                code, Trade.TradeBaseCurrency.XMR) :
+                        Res.get("offerbook.createOfferToSell.forCrypto", code, Trade.TradeBaseCurrency.XMR);
             }
             createOfferButton.updateText(offerButtonText);
         }
@@ -584,7 +586,7 @@ public class XmrOfferBookView extends ActivatableViewAndModel<GridPane, XmrOffer
                 new Popup<>()
                         .warning(Res.get("offerbook.warning.tradeLimitNotMatching",
                                 DisplayUtils.formatAccountAge(model.accountAgeWitnessService.getMyAccountAge(account.get().getPaymentAccountPayload())),
-                                formatter.formatCoinWithCode(Coin.valueOf(tradeLimit)),
+                                formatter.formatCoinWithCode(XmrCoin.valueOf(tradeLimit)),
                                 formatter.formatCoinWithCode(offer.getMinAmount())))
                         .show();
             } else {
@@ -656,7 +658,7 @@ public class XmrOfferBookView extends ActivatableViewAndModel<GridPane, XmrOffer
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private AutoTooltipTableColumn<XmrOfferBookListItem, XmrOfferBookListItem> getAmountColumn() {
-        AutoTooltipTableColumn<XmrOfferBookListItem, XmrOfferBookListItem> column = new AutoTooltipTableColumn<>(Res.get("shared.BTCMinMax"), Res.get("shared.amountHelp"));
+        AutoTooltipTableColumn<XmrOfferBookListItem, XmrOfferBookListItem> column = new AutoTooltipTableColumn<>(Res.get("shared.XXXMinMax", Trade.TradeBaseCurrency.XMR), Res.get("shared.amountHelp"));
         column.setMinWidth(100);
         column.getStyleClass().add("number-column");
         column.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
@@ -670,6 +672,7 @@ public class XmrOfferBookView extends ActivatableViewAndModel<GridPane, XmrOffer
                             public void updateItem(final XmrOfferBookListItem item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null && !empty)
+                                	//TODO(niyid) retrieve BTC -> XMR conversion from offer.extraDataMap.get(XMR_TO_BTC_RATE='xmrToBtcRate')
                                     setGraphic(new ColoredDecimalPlacesWithZerosText(model.getAmount(item), GUIUtil.AMOUNT_DECIMALS_WITH_ZEROS));
                                 else
                                     setGraphic(null);
@@ -700,7 +703,7 @@ public class XmrOfferBookView extends ActivatableViewAndModel<GridPane, XmrOffer
                                 super.updateItem(item, empty);
 
                                 if (item != null && !empty)
-                                    setText(BSFormatter.getCurrencyPair(item.getOffer().getCurrencyCode()));
+                                    setText(XmrBSFormatter.getCurrencyPair(item.getOffer().getCurrencyCode()));
                                 else
                                     setText("");
                             }
@@ -1061,7 +1064,7 @@ public class XmrOfferBookView extends ActivatableViewAndModel<GridPane, XmrOffer
                 Res.get("offerbook.timeSinceSigning"),
                 Res.get("offerbook.timeSinceSigning.help",
                         SignedWitnessService.SIGNER_AGE_DAYS,
-                        formatter.formatCoinWithCode(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT))) {
+                        formatter.formatCoinWithCode(OfferRestrictions.XMR_TOLERATED_SMALL_TRADE_AMOUNT))) {
             {
                 setMinWidth(60);
                 setSortable(true);
@@ -1156,7 +1159,7 @@ public class XmrOfferBookView extends ActivatableViewAndModel<GridPane, XmrOffer
                                     final NodeAddress makersNodeAddress = offer.getOwnerNodeAddress();
                                     String role = Res.get("peerInfoIcon.tooltip.maker");
                                     int numTrades = model.getNumTrades(offer);
-                                    PeerInfoIcon peerInfoIcon = new PeerInfoIcon(makersNodeAddress,
+                                    XmrPeerInfoIcon peerInfoIcon = new XmrPeerInfoIcon(makersNodeAddress,
                                             role,
                                             numTrades,
                                             privateNotificationManager,

@@ -20,8 +20,10 @@ package bisq.desktop.main.offer.xmr.offerbook;
 import bisq.core.locale.CurrencyUtil;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferBookService;
+import bisq.core.offer.OfferPayload;
+import bisq.core.trade.Trade;
+import bisq.core.trade.Trade.TradeBaseCurrency;
 import bisq.core.trade.TradeManager;
-import bisq.desktop.main.MainView.TradeBaseCurrency;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -75,6 +77,14 @@ public class XmrOfferBook {
                     // We don't use the contains method as the equals method in Offer takes state and errorMessage into account.
                     // If we have an offer with same ID we remove it and add the new offer as it might have a changed state.
                     Optional<XmrOfferBookListItem> candidateWithSameId = offerBookListItems.stream()
+                    		.filter(new Predicate<>() {
+    							@Override
+    							public boolean test(XmrOfferBookListItem item) {
+    								return CurrencyUtil.isFiatCurrency(item.getOffer().getCurrencyCode()) ? 
+    										Trade.TradeBaseCurrency.XMR.name().equals(item.getOffer().getOfferPayload().getBaseCurrencyCode()) :
+    										Trade.TradeBaseCurrency.XMR.name().equals(item.getOffer().getOfferPayload().getCounterCurrencyCode());
+    							}
+        					})
                             .filter(item -> item.getOffer().getId().equals(offer.getId()))
                             .findAny();
                     if (candidateWithSameId.isPresent()) {
@@ -98,6 +108,14 @@ public class XmrOfferBook {
                 tradeManager.onOfferRemovedFromRemoteOfferBook(offer);
                 // We don't use the contains method as the equals method in Offer takes state and errorMessage into account.
                 Optional<XmrOfferBookListItem> candidateToRemove = offerBookListItems.stream()
+                		.filter(new Predicate<>() {
+							@Override
+							public boolean test(XmrOfferBookListItem item) {
+								return CurrencyUtil.isFiatCurrency(item.getOffer().getCurrencyCode()) ? 
+										Trade.TradeBaseCurrency.XMR.name().equals(item.getOffer().getOfferPayload().getBaseCurrencyCode()) :
+										Trade.TradeBaseCurrency.XMR.name().equals(item.getOffer().getOfferPayload().getCounterCurrencyCode());
+							}
+    					})
                         .filter(item -> item.getOffer().getId().equals(offer.getId()))
                         .findAny();
                 candidateToRemove.ifPresent(offerBookListItems::remove);
@@ -121,34 +139,7 @@ public class XmrOfferBook {
 
 						@Override
 						public boolean test(Offer o) {
-							return CurrencyUtil.isFiatCurrency(o.getCurrencyCode()) ? 
-									"BTC".equals(o.getOfferPayload().getBaseCurrencyCode()) :
-									"BTC".equals(o.getOfferPayload().getCounterCurrencyCode());
-						}
-					})
-                    .map(XmrOfferBookListItem::new)
-                    .collect(Collectors.toList()));
-
-            log.debug("offerBookListItems.size {}", offerBookListItems.size());
-            fillOfferCountMaps();
-        } catch (Throwable t) {
-            t.printStackTrace();
-            log.error("Error at fillOfferBookListItems: " + t.toString());
-        }
-    }
-    public void fillXmrOfferBookListItems() {
-        try {
-            // setAll causes sometimes an UnsupportedOperationException
-            // Investigate why....
-            offerBookListItems.clear();
-            offerBookListItems.addAll(offerBookService.getOffers().stream()
-            		.filter(new Predicate<>() {
-
-						@Override
-						public boolean test(Offer o) {
-							return CurrencyUtil.isFiatCurrency(o.getCurrencyCode()) ? 
-									TradeBaseCurrency.XMR.name().equals(o.getOfferPayload().getBaseCurrencyCode()) :
-									TradeBaseCurrency.XMR.name().equals(o.getOfferPayload().getCounterCurrencyCode());
+							return o.getExtraDataMap() != null && o.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE) != null;
 						}
 					})
                     .map(XmrOfferBookListItem::new)

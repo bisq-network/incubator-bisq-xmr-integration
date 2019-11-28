@@ -47,7 +47,7 @@ import bisq.core.trade.Trade;
 import bisq.core.trade.closed.ClosedTradableManager;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
-import bisq.core.util.BSFormatter;
+import bisq.core.util.XmrBSFormatter;
 import bisq.core.util.BsqFormatter;
 
 import bisq.network.p2p.NodeAddress;
@@ -57,7 +57,7 @@ import bisq.common.app.Version;
 import bisq.common.handlers.ErrorMessageHandler;
 import bisq.common.handlers.ResultHandler;
 
-import org.bitcoinj.core.Coin;
+import bisq.core.xmr.XmrCoin;
 
 import com.google.inject.Inject;
 
@@ -102,7 +102,7 @@ class XmrOfferBookViewModel extends ActivatableViewModel {
     private final FilterManager filterManager;
     final AccountAgeWitnessService accountAgeWitnessService;
     private final Navigation navigation;
-    private final BSFormatter btcFormatter;
+    private final XmrBSFormatter xmrFormatter;
     private final BsqFormatter bsqFormatter;
     final ObjectProperty<TableColumn.SortType> priceSortTypeProperty = new SimpleObjectProperty<>();
 
@@ -129,6 +129,7 @@ class XmrOfferBookViewModel extends ActivatableViewModel {
     final IntegerProperty maxPlacesForPrice = new SimpleIntegerProperty();
     final IntegerProperty maxPlacesForMarketPriceMargin = new SimpleIntegerProperty();
     boolean showAllPaymentMethods = true;
+    
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
@@ -145,7 +146,7 @@ class XmrOfferBookViewModel extends ActivatableViewModel {
                               FilterManager filterManager,
                               AccountAgeWitnessService accountAgeWitnessService,
                               Navigation navigation,
-                              BSFormatter btcFormatter,
+                              XmrBSFormatter xmrFormatter,
                               BsqFormatter bsqFormatter) {
         super();
 
@@ -159,7 +160,7 @@ class XmrOfferBookViewModel extends ActivatableViewModel {
         this.filterManager = filterManager;
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.navigation = navigation;
-        this.btcFormatter = btcFormatter;
+        this.xmrFormatter = xmrFormatter;
         this.bsqFormatter = bsqFormatter;
 
         this.filteredItems = new FilteredList<>(offerBook.getOfferBookListItems());
@@ -181,9 +182,9 @@ class XmrOfferBookViewModel extends ActivatableViewModel {
                 final XmrOfferBookListItem item = highestAmountOffer.get();
                 if (!item.getOffer().isRange() && containsRangeAmountAndTradedCurrencyMatch) {
                     maxPlacesForAmount.set(formatAmount(item.getOffer(), false)
-                            .length() * 2 + BSFormatter.RANGE_SEPARATOR.length());
+                            .length() * 2 + XmrBSFormatter.RANGE_SEPARATOR.length());
                     maxPlacesForVolume.set(formatVolume(item.getOffer(), false)
-                            .length() * 2 + BSFormatter.RANGE_SEPARATOR.length());
+                            .length() * 2 + XmrBSFormatter.RANGE_SEPARATOR.length());
                 } else {
                     maxPlacesForAmount.set(formatAmount(item.getOffer(), false).length());
                     maxPlacesForVolume.set(formatVolume(item.getOffer(), false).length());
@@ -225,7 +226,7 @@ class XmrOfferBookViewModel extends ActivatableViewModel {
 
         fillAllTradeCurrencies();
         preferences.getTradeCurrenciesAsObservable().addListener(tradeCurrencyListChangeListener);
-        offerBook.fillXmrOfferBookListItems();
+        offerBook.fillOfferBookListItems();
         applyFilterPredicate();
         setMarketPriceFeedCurrency();
     }
@@ -349,7 +350,7 @@ class XmrOfferBookViewModel extends ActivatableViewModel {
     }
 
     private String formatAmount(Offer offer, boolean decimalAligned) {
-        return DisplayUtils.formatAmount(offer, GUIUtil.AMOUNT_DECIMALS, decimalAligned, maxPlacesForAmount.get(), btcFormatter);
+        return DisplayUtils.formatAmount(offer, GUIUtil.AMOUNT_DECIMALS, decimalAligned, maxPlacesForAmount.get(), xmrFormatter);
     }
 
 
@@ -367,7 +368,7 @@ class XmrOfferBookViewModel extends ActivatableViewModel {
     }
 
     String getAbsolutePriceMargin(Offer offer) {
-        return BSFormatter.formatPercentagePrice(Math.abs(offer.getMarketPriceMargin()));
+        return XmrBSFormatter.formatPercentagePrice(Math.abs(offer.getMarketPriceMargin()));
     }
 
     private String formatPrice(Offer offer, boolean decimalAligned) {
@@ -377,12 +378,12 @@ class XmrOfferBookViewModel extends ActivatableViewModel {
     private String formatMarketPriceMargin(Offer offer, boolean decimalAligned) {
         String postFix = "";
         if (offer.isUseMarketBasedPrice()) {
-            postFix = " (" + BSFormatter.formatPercentagePrice(offer.getMarketPriceMargin()) + ")";
+            postFix = " (" + XmrBSFormatter.formatPercentagePrice(offer.getMarketPriceMargin()) + ")";
 
         }
 
         if (decimalAligned) {
-            postFix = BSFormatter.fillUpPlacesWithEmptyStrings(postFix, maxPlacesForMarketPriceMargin.get());
+            postFix = XmrBSFormatter.fillUpPlacesWithEmptyStrings(postFix, maxPlacesForMarketPriceMargin.get());
         }
 
         return postFix;
@@ -479,7 +480,7 @@ class XmrOfferBookViewModel extends ActivatableViewModel {
     }
 
     String getDirectionLabelTooltip(Offer offer) {
-        return BSFormatter.getDirectionWithCodeDetailed(offer.getMirroredDirection(), offer.getCurrencyCode());
+        return XmrBSFormatter.getDirectionWithCodeDetailed(offer.getMirroredDirection(), offer.getCurrencyCode());
     }
 
     Optional<PaymentAccount> getMostMaturePaymentAccountForOffer(Offer offer) {
@@ -587,8 +588,8 @@ class XmrOfferBookViewModel extends ActivatableViewModel {
         final long offerMinAmount = offer.getMinAmount().value;
         log.debug("isInsufficientTradeLimit accountOptional={}, myTradeLimit={}, offerMinAmount={}, ",
                 accountOptional.isPresent() ? accountOptional.get().getAccountName() : "null",
-                Coin.valueOf(myTradeLimit).toFriendlyString(),
-                Coin.valueOf(offerMinAmount).toFriendlyString());
+                XmrCoin.valueOf(myTradeLimit).toFriendlyString(),
+                XmrCoin.valueOf(offerMinAmount).toFriendlyString());
         return CurrencyUtil.isFiatCurrency(offer.getCurrencyCode()) &&
                 accountOptional.isPresent() &&
                 myTradeLimit < offerMinAmount;
@@ -634,7 +635,7 @@ class XmrOfferBookViewModel extends ActivatableViewModel {
 
     public String getMakerFeeAsString(Offer offer) {
         return offer.isCurrencyForMakerFeeBtc() ?
-                btcFormatter.formatCoinWithCode(offer.getMakerFee()) :
+                xmrFormatter.formatCoinWithCode(offer.getMakerFee()) :
                 bsqFormatter.formatCoinWithCode(offer.getMakerFee());
     }
 }

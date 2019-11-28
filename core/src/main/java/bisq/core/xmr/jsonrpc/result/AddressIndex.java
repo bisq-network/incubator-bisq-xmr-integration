@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 import com.google.gson.annotations.Expose;
 
-public class SubAddressIndex implements Serializable {
+public class AddressIndex implements Serializable {
 
 	/**
 	 * 
@@ -35,7 +35,7 @@ public class SubAddressIndex implements Serializable {
 
 	@Override
 	public String toString() {
-		return "SubAddressIndex [major=" + major + ", minor=" + minor + "]";
+		return "AddressIndex [major=" + major + ", minor=" + minor + "]";
 	}
 
 }

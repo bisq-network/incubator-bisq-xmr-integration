@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import bisq.core.xmr.jsonrpc.result.Address;
+import bisq.core.xmr.jsonrpc.result.AddressIndex;
 import bisq.core.xmr.jsonrpc.result.Balance;
 import bisq.core.xmr.jsonrpc.result.MoneroTransfer;
 import bisq.core.xmr.jsonrpc.result.MoneroTransferList;
@@ -48,8 +49,38 @@ public class MoneroWalletRpc {
 		return balance;
 	}
 	
+	public AddressIndex getAddressIndex(String address) {
+		Map<String, Object> params = new HashMap<>();
+		params.put("address", address);
+		Map<String, Object> response = rpcConnection.sendJsonRequest("get_address_index", params);
+		log.debug("response => {}", response);
+		
+		AddressIndex index = JsonUtils.deserialize(MoneroRpcConnection.DEFAULT_MAPPER, JsonUtils.serialize(MoneroRpcConnection.DEFAULT_MAPPER, response.get("result")), AddressIndex.class);
+		log.debug("index => {}", index);
+		
+		return index;
+	}
+	
+	public Balance getBalanceData(String address) {
+		AddressIndex index = getAddressIndex(address);
+		Map<String, Object> params = new HashMap<>();
+		params.put("account_index", index.getMajor());
+		params.put("address_index", new long[]{index.getMinor()});
+		Map<String, Object> response = rpcConnection.sendJsonRequest("get_balance", params);
+		log.debug("response => {}", response);
+		
+		Balance balance = JsonUtils.deserialize(MoneroRpcConnection.DEFAULT_MAPPER, JsonUtils.serialize(MoneroRpcConnection.DEFAULT_MAPPER, response.get("result")), Balance.class);
+		log.debug("balance => {}", balance);
+		
+		return balance;
+	}
+	
 	public BigInteger getBalance() {
 		return getBalanceData().getBalance();
+	}
+	
+	public BigInteger getBalance(String address) {
+		return getBalanceData(address).getBalance();
 	}
 	
 	public BigInteger getUnlockedBalance() {
@@ -78,6 +109,17 @@ public class MoneroWalletRpc {
 		log.debug("txHash => {}", txHash);
 		
 		return txHash;
+	}
+	
+	@SuppressWarnings("unchecked")
+	public Address createWallet(int accountIndex, String label) {
+		Map<String, Object> params = new HashMap<>();
+		params.put("account_index", accountIndex);
+		params.put("label", label);
+		Map<String, Object> response = rpcConnection.sendJsonRequest("create_address", params);
+		log.debug("response => {}", response);
+		
+		return JsonUtils.deserialize(MoneroRpcConnection.DEFAULT_MAPPER, JsonUtils.serialize(MoneroRpcConnection.DEFAULT_MAPPER, response.get("result")), Address.class);
 	}
 	
 	public List<MoneroTransfer> getTxs(String txIds) {

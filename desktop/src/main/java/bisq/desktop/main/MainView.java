@@ -116,9 +116,7 @@ import static javafx.scene.layout.AnchorPane.setTopAnchor;
 public class MainView extends InitializableView<StackPane, MainViewModel>
         implements DaoStateMonitoringService.Listener {
 
-	public static enum TradeBaseCurrency {BTC, XMR};
-	
-    // If after 30 sec we have not got connected we show "open network settings" button
+	// If after 30 sec we have not got connected we show "open network settings" button
     private final static int SHOW_TOR_SETTINGS_DELAY_SEC = 90;
     private Label versionLabel;
     @Setter

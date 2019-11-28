@@ -22,22 +22,21 @@ see <http://www.gnu.org/licenses/>.
 package bisq.desktop.main.offer.xmr.createoffer;
 
 import bisq.desktop.Navigation;
-import bisq.desktop.main.offer.MakerFeeProvider;
-import bisq.desktop.main.offer.MutableOfferDataModel;
-
+import bisq.desktop.main.offer.xmr.XmrMakerFeeProvider;
+import bisq.desktop.main.offer.xmr.XmrMutableOfferDataModel;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.TxFeeEstimationService;
 import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.filter.FilterManager;
 import bisq.core.offer.OpenOfferManager;
-import bisq.core.provider.fee.FeeService;
+import bisq.core.provider.fee.XmrFeeService;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.statistics.ReferralIdService;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
-import bisq.core.util.BSFormatter;
-
+import bisq.core.util.XmrBSFormatter;
+import bisq.core.xmr.wallet.XmrWalletRpcWrapper;
 import bisq.network.p2p.P2PService;
 
 import bisq.common.crypto.KeyRing;
@@ -49,12 +48,13 @@ import com.google.inject.Inject;
  * Note that the create offer domain has a deeper scope in the application domain (TradeManager).
  * That model is just responsible for the domain specific parts displayed needed in that UI element.
  */
-class XmrCreateOfferDataModel extends MutableOfferDataModel {
+class XmrCreateOfferDataModel extends XmrMutableOfferDataModel {
 
     @Inject
     public XmrCreateOfferDataModel(OpenOfferManager openOfferManager,
                                 BtcWalletService btcWalletService,
                                 BsqWalletService bsqWalletService,
+                                XmrWalletRpcWrapper xmrWalletWrapper,
                                 Preferences preferences,
                                 User user,
                                 KeyRing keyRing,
@@ -62,15 +62,16 @@ class XmrCreateOfferDataModel extends MutableOfferDataModel {
                                 PriceFeedService priceFeedService,
                                 FilterManager filterManager,
                                 AccountAgeWitnessService accountAgeWitnessService,
-                                FeeService feeService,
+                                XmrFeeService feeService,
                                 TxFeeEstimationService txFeeEstimationService,
                                 ReferralIdService referralIdService,
-                                BSFormatter btcFormatter,
-                                MakerFeeProvider makerFeeProvider,
+                                XmrBSFormatter xmrFormatter,
+                                XmrMakerFeeProvider makerFeeProvider,
                                 Navigation navigation) {
         super(openOfferManager,
                 btcWalletService,
                 bsqWalletService,
+                xmrWalletWrapper,
                 preferences,
                 user,
                 keyRing,
@@ -81,7 +82,7 @@ class XmrCreateOfferDataModel extends MutableOfferDataModel {
                 feeService,
                 txFeeEstimationService,
                 referralIdService,
-                btcFormatter,
+                xmrFormatter,
                 makerFeeProvider,
                 navigation);
     }

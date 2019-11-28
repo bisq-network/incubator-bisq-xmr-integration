@@ -19,11 +19,10 @@ package bisq.desktop.main.offer.xmr;
 
 import bisq.desktop.common.model.ActivatableDataModel;
 
-import bisq.core.btc.model.AddressEntry;
-import bisq.core.btc.wallet.BtcWalletService;
+import bisq.core.xmr.wallet.XmrWalletRpcWrapper;
 
-import org.bitcoinj.core.Coin;
-
+import bisq.core.xmr.XmrCoin;
+import bisq.core.xmr.jsonrpc.result.Address;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -37,54 +36,66 @@ import lombok.Getter;
  * That model is just responsible for the domain specific parts displayed needed in that UI element.
  */
 public abstract class XmrOfferDataModel extends ActivatableDataModel {
-    protected final BtcWalletService btcWalletService;
+    protected final XmrWalletRpcWrapper xmrWalletWrapper;
 
     @Getter
-    protected final BooleanProperty isBtcWalletFunded = new SimpleBooleanProperty();
+    protected final BooleanProperty isXmrWalletFunded = new SimpleBooleanProperty();
     @Getter
-    protected final ObjectProperty<Coin> totalToPayAsCoin = new SimpleObjectProperty<>();
+    protected final ObjectProperty<XmrCoin> totalToPayAsCoin = new SimpleObjectProperty<>();
     @Getter
-    protected final ObjectProperty<Coin> balance = new SimpleObjectProperty<>();
+    protected final ObjectProperty<XmrCoin> balance = new SimpleObjectProperty<>();
     @Getter
-    protected final ObjectProperty<Coin> missingCoin = new SimpleObjectProperty<>(Coin.ZERO);
+    protected final ObjectProperty<XmrCoin> missingCoin = new SimpleObjectProperty<>(XmrCoin.ZERO);
     @Getter
     protected final BooleanProperty showWalletFundedNotification = new SimpleBooleanProperty();
     @Getter
-    protected Coin totalAvailableBalance;
-    protected AddressEntry addressEntry;
+    protected XmrCoin totalAvailableBalance;
+    //TODO(niyid) Replace with Address class in monero-java-lite library
+    protected Address addressEntry;
     protected boolean useSavingsWallet;
+    
 
-    public XmrOfferDataModel(BtcWalletService btcWalletService) {
-        this.btcWalletService = btcWalletService;
+    public XmrOfferDataModel(XmrWalletRpcWrapper xmrWalletWrapper) {
+        this.xmrWalletWrapper = xmrWalletWrapper;
     }
 
     protected void updateBalance() {
-        Coin tradeWalletBalance = btcWalletService.getBalanceForAddress(addressEntry.getAddress());
-        if (useSavingsWallet) {
-            Coin savingWalletBalance = btcWalletService.getSavingWalletBalance();
-            totalAvailableBalance = savingWalletBalance.add(tradeWalletBalance);
-            if (totalToPayAsCoin.get() != null) {
-                if (totalAvailableBalance.compareTo(totalToPayAsCoin.get()) > 0)
-                    balance.set(totalToPayAsCoin.get());
-                else
-                    balance.set(totalAvailableBalance);
+    	//TODO(niyid) tradeWallet is multisig wallet created for this trade using the tradeId
+    	if(xmrWalletWrapper != null && addressEntry != null) {
+            XmrCoin tradeWalletBalance = xmrWalletWrapper.getBalanceForAddress(addressEntry.getAddress());
+            log.info("XmrOfferDataModel => {0}", tradeWalletBalance.getValue());
+            if (useSavingsWallet) {
+            	// savingWallet is primary wallet       	
+                XmrCoin savingWalletBalance = xmrWalletWrapper.getBalance();
+                totalAvailableBalance = savingWalletBalance.add(tradeWalletBalance);
+                if (totalToPayAsCoin.get() != null) {
+                    if (totalAvailableBalance.compareTo(totalToPayAsCoin.get()) > 0)
+                        balance.set(totalToPayAsCoin.get());
+                    else
+                        balance.set(totalAvailableBalance);
+                }
+            } else {
+                balance.set(tradeWalletBalance);
             }
-        } else {
             balance.set(tradeWalletBalance);
-        }
-        if (totalToPayAsCoin.get() != null) {
-            missingCoin.set(totalToPayAsCoin.get().subtract(balance.get()));
-            if (missingCoin.get().isNegative())
-                missingCoin.set(Coin.ZERO);
-        }
+            if (totalToPayAsCoin.get() != null) {
+                missingCoin.set(totalToPayAsCoin.get().subtract(balance.get()));
+                if (missingCoin.get().isNegative())
+                    missingCoin.set(XmrCoin.ZERO);
+            }
 
-        isBtcWalletFunded.set(isBalanceSufficient(balance.get()));
-        if (totalToPayAsCoin.get() != null && isBtcWalletFunded.get() && !showWalletFundedNotification.get()) {
-            showWalletFundedNotification.set(true);
-        }
+            isXmrWalletFunded.set(isBalanceSufficient(balance.get()));
+            if (totalToPayAsCoin.get() != null && isXmrWalletFunded.get() && !showWalletFundedNotification.get()) {
+                showWalletFundedNotification.set(true);
+            }
+    	}
     }
 
-    private boolean isBalanceSufficient(Coin balance) {
+    private boolean isBalanceSufficient(XmrCoin balance) {
         return totalToPayAsCoin.get() != null && balance.compareTo(totalToPayAsCoin.get()) >= 0;
+    }
+    
+    protected void createMultisigWallet(String offerId) {
+    	addressEntry = offerId != null ? xmrWalletWrapper.getOrCreateAddressEntry(offerId) : xmrWalletWrapper.getOrCreateAddressEntry();
     }
 }

@@ -569,6 +569,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     }
 
     public void setSelectedPaymentAccountForCreateOffer(@Nullable PaymentAccount paymentAccount) {
+    	//TODO(niyid) If prefPayload.isUseBisqXmrWallet() == true set paymentAccount to XMR Wallet generated on-the-fly
         prefPayload.setSelectedPaymentAccountForCreateOffer(paymentAccount);
         persist();
     }

@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.List;
 
 import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.SerializedName;
 
 public class Address implements Serializable {
 
@@ -15,6 +16,10 @@ public class Address implements Serializable {
 	@Expose
 	private String address;
 	
+	@Expose
+	@SerializedName(value = "address_index")
+	private int addressIndex;
+
 	@Expose
 	private List<SubAddress> addresses;
 
@@ -29,6 +34,14 @@ public class Address implements Serializable {
 
 	public void setAddress(String address) {
 		this.address = address;
+	}
+
+	public int getAddressIndex() {
+		return addressIndex;
+	}
+
+	public void setAddressIndex(int addressIndex) {
+		this.addressIndex = addressIndex;
 	}
 
 	public List<SubAddress> getAddresses() {

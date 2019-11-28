@@ -20,11 +20,11 @@ package bisq.desktop.main.offer.xmr.takeoffer;
 import bisq.desktop.Navigation;
 import bisq.desktop.common.view.ActivatableViewAndModel;
 import bisq.desktop.common.view.FxmlView;
-import bisq.desktop.components.AddressTextField;
+import bisq.desktop.components.XmrAddressTextField;
 import bisq.desktop.components.AutoTooltipButton;
 import bisq.desktop.components.AutoTooltipLabel;
 import bisq.desktop.components.AutoTooltipSlideToggleButton;
-import bisq.desktop.components.BalanceTextField;
+import bisq.desktop.components.XmrBalanceTextField;
 import bisq.desktop.components.BusyAnimation;
 import bisq.desktop.components.FundsTextField;
 import bisq.desktop.components.InfoInputTextField;
@@ -53,8 +53,10 @@ import bisq.core.offer.Offer;
 import bisq.core.offer.OfferPayload;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.trade.Trade;
+import bisq.core.trade.Trade.TradeBaseCurrency;
 import bisq.core.user.DontShowAgainLookup;
-import bisq.core.util.BSFormatter;
+import bisq.core.util.XmrBSFormatter;
 import bisq.core.util.BsqFormatter;
 
 import bisq.common.UserThread;
@@ -64,7 +66,7 @@ import bisq.common.util.Tuple3;
 import bisq.common.util.Tuple4;
 import bisq.common.util.Utilities;
 
-import org.bitcoinj.core.Coin;
+import bisq.core.xmr.XmrCoin;
 
 import net.glxn.qrgen.QRCode;
 import net.glxn.qrgen.image.ImageType;
@@ -98,6 +100,7 @@ import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 
+import org.bitcoinj.core.Coin;
 import org.fxmisc.easybind.EasyBind;
 import org.fxmisc.easybind.Subscription;
 
@@ -118,7 +121,7 @@ import static javafx.beans.binding.Bindings.createStringBinding;
 @FxmlView
 public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTakeOfferViewModel> {
     private final Navigation navigation;
-    private final BSFormatter formatter;
+    private final XmrBSFormatter formatter;
     private final BsqFormatter bsqFormatter;
     private final OfferDetailsWindow offerDetailsWindow;
     private final Transitions transitions;
@@ -142,8 +145,8 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
     private TextField paymentMethodTextField, currencyTextField, priceTextField, priceAsPercentageTextField,
             volumeTextField, amountRangeTextField;
     private FundsTextField totalToPayTextField;
-    private AddressTextField addressTextField;
-    private BalanceTextField balanceTextField;
+    private XmrAddressTextField XmrAddressTextField;
+    private XmrBalanceTextField XmrBalanceTextField;
     private Text xIcon, fakeXIcon;
     private Button nextButton, cancelButton1, cancelButton2;
     private AutoTooltipButton takeOfferButton;
@@ -164,6 +167,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
     private AutoTooltipSlideToggleButton tradeFeeInBtcToggle, tradeFeeInBsqToggle;
     private ChangeListener<Boolean> tradeFeeInBtcToggleListener, tradeFeeInBsqToggleListener,
             tradeFeeVisibleListener;
+    
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
@@ -172,7 +176,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
     @Inject
     private XmrTakeOfferView(XmrTakeOfferViewModel model,
                           Navigation navigation,
-                          BSFormatter formatter,
+                          XmrBSFormatter formatter,
                           BsqFormatter bsqFormatter,
                           OfferDetailsWindow offerDetailsWindow,
                           Transitions transitions) {
@@ -197,7 +201,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
         addOfferAvailabilityLabel();
         addFundingGroup();
 
-        balanceTextField.setFormatter(model.getBtcFormatter());
+        XmrBalanceTextField.setFormatter(model.getXmrFormatter());
 
         amountFocusedListener = (o, oldValue, newValue) -> {
             model.onFocusOutAmountTextField(oldValue, newValue, amountTextField.getText());
@@ -222,7 +226,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
             if (!newValue && !tradeFeeInBsqToggle.isSelected())
                 tradeFeeInBsqToggle.setSelected(true);
 
-            setIsCurrencyForMakerFeeBtc(newValue);
+            setIsCurrencyForMakerFeeXmr(newValue);
         };
         tradeFeeInBsqToggleListener = (observable, oldValue, newValue) -> {
             if (newValue && tradeFeeInBtcToggle.isSelected())
@@ -231,7 +235,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
             if (!newValue && !tradeFeeInBtcToggle.isSelected())
                 tradeFeeInBtcToggle.setSelected(true);
 
-            setIsCurrencyForMakerFeeBtc(!newValue);
+            setIsCurrencyForMakerFeeXmr(!newValue);
         };
 
         tradeFeeVisibleListener = (observable, oldValue, newValue) -> {
@@ -244,11 +248,11 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
         GUIUtil.focusWhenAddedToScene(amountTextField);
     }
 
-    private void setIsCurrencyForMakerFeeBtc(boolean isCurrencyForMakerFeeBtc) {
-        model.setIsCurrencyForTakerFeeBtc(isCurrencyForMakerFeeBtc);
+    private void setIsCurrencyForMakerFeeXmr(boolean isCurrencyForMakerFeeXmr) {
+        model.setIsCurrencyForTakerFeeXmr(isCurrencyForMakerFeeXmr);
         if (DevEnv.isDaoActivated()) {
-            tradeFeeInBtcLabel.setOpacity(isCurrencyForMakerFeeBtc ? 1 : 0.3);
-            tradeFeeInBsqLabel.setOpacity(isCurrencyForMakerFeeBtc ? 0.3 : 1);
+            tradeFeeInBtcLabel.setOpacity(isCurrencyForMakerFeeXmr ? 1 : 0.3);
+            tradeFeeInBsqLabel.setOpacity(isCurrencyForMakerFeeXmr ? 0.3 : 1);
         }
     }
 
@@ -278,7 +282,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
 
         String currencyCode = model.dataModel.getCurrencyCode();
         volumeCurrencyLabel.setText(currencyCode);
-        priceDescriptionLabel.setText(BSFormatter.getPriceWithCurrencyCode(currencyCode));
+        priceDescriptionLabel.setText(XmrBSFormatter.getPriceWithCurrencyCode(currencyCode));
         volumeDescriptionLabel.setText(model.volumeDescriptionLabel.get());
 
         if (model.getPossiblePaymentAccounts().size() > 1) {
@@ -295,7 +299,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
             paymentAccountTitledGroupBg.setText(Res.get("shared.selectTradingAccount"));
         }
 
-        balanceTextField.setTargetAmount(model.dataModel.getTotalToPayAsCoin().get());
+        XmrBalanceTextField.setTargetAmount(model.dataModel.getTotalToPayAsCoin().get());
 
         maybeShowClearXchangeWarning();
 
@@ -306,7 +310,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
                 showNextStepAfterAmountIsSet();
         }
 
-        boolean currencyForMakerFeeBtc = model.dataModel.isCurrencyForTakerFeeBtc();
+        boolean currencyForMakerFeeBtc = model.dataModel.isCurrencyForTakerFeeXmr();
         tradeFeeInBtcToggle.setSelected(currencyForMakerFeeBtc);
         tradeFeeInBsqToggle.setSelected(!currencyForMakerFeeBtc);
 
@@ -376,8 +380,8 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
 
         priceTextField.setText(model.getPrice());
         priceAsPercentageTextField.setText(model.marketPriceMargin);
-        addressTextField.setPaymentLabel(model.getPaymentLabel());
-        addressTextField.setAddress(model.dataModel.getAddressEntry().getAddressString());
+        XmrAddressTextField.setPaymentLabel(model.getPaymentLabel());
+        XmrAddressTextField.setAddress(model.dataModel.getAddressEntry().getAddress());
 
         if (CurrencyUtil.isFiatCurrency(offer.getCurrencyCode()))
             volumeInfoTextField.setContentForPrivacyPopOver(createPopoverLabel(Res.get("offerbook.info.roundedFiatVolume")));
@@ -394,7 +398,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
 
     // called form parent as the view does not get notified when the tab is closed
     public void onClose() {
-        Coin balance = model.dataModel.getBalance().get();
+        XmrCoin balance = model.dataModel.getBalance().get();
         if (balance != null && balance.isPositive() && !model.takeOfferCompleted.get() && !DevEnv.isDevMode()) {
             model.dataModel.swapTradeToSavings();
             new Popup<>().information(Res.get("takeOffer.alreadyFunded.movedFunds"))
@@ -426,7 +430,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
                                 offerDetailsWindow.hide();
                                 offerDetailsWindowDisplayed = false;
                             })
-                    ).show(model.getOffer(), model.dataModel.getAmount().get(), model.dataModel.tradePrice);
+                    ).show(model.getOffer(), XmrCoin.fromXmrCoin2Coin(model.dataModel.getAmount().get(), "BTC", model.getOffer().getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)), model.getOffer().getPrice());
                     offerDetailsWindowDisplayed = true;
                 } else {
                     balanceSubscription.unsubscribe();
@@ -434,7 +438,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
                     });
                 }
             } else {
-                showInsufficientBsqFundsForBtcFeePaymentPopup();
+                showInsufficientBsqFundsForXmrFeePaymentPopup();
             }
         }
     }
@@ -495,7 +499,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
 
         updateOfferElementsStyle();
 
-        balanceTextField.setTargetAmount(model.dataModel.getTotalToPayAsCoin().get());
+        XmrBalanceTextField.setTargetAmount(model.dataModel.getTotalToPayAsCoin().get());
 
         if (!DevEnv.isDevMode()) {
             String key = "securityDepositInfo";
@@ -528,15 +532,15 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
 
         payFundsTitledGroupBg.setVisible(true);
         totalToPayTextField.setVisible(true);
-        addressTextField.setVisible(true);
+        XmrAddressTextField.setVisible(true);
         qrCodeImageView.setVisible(true);
-        balanceTextField.setVisible(true);
+        XmrBalanceTextField.setVisible(true);
 
         totalToPayTextField.setFundsStructure(Res.get("takeOffer.fundsBox.fundsStructure",
                 model.getSecurityDepositWithCode(), model.getTakerFeePercentage(), model.getTxFeePercentage()));
         totalToPayTextField.setContentForInfoPopOver(createInfoPopover());
 
-        if (model.dataModel.getIsBtcWalletFunded().get()) {
+        if (model.dataModel.getIsXmrWalletFunded().get()) {
             if (walletFundedNotification == null) {
                 walletFundedNotification = new Notification()
                         .headLine(Res.get("notification.walletUpdate.headline"))
@@ -547,7 +551,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
         }
 
         final byte[] imageBytes = QRCode
-                .from(getBitcoinURI())
+                .from(getMoneroURI())
                 .withSize(98, 98) // code has 41 elements 8 px is border with 98 we get double scale and min. border
                 .to(ImageType.PNG)
                 .stream()
@@ -597,12 +601,12 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
         amountTextField.textProperty().bindBidirectional(model.amount);
         volumeTextField.textProperty().bindBidirectional(model.volume);
         totalToPayTextField.textProperty().bind(model.totalToPay);
-        addressTextField.amountAsCoinProperty().bind(model.dataModel.getMissingCoin());
+        XmrAddressTextField.amountAsCoinProperty().bind(model.dataModel.getMissingCoin());
         amountTextField.validationResultProperty().bind(model.amountValidationResult);
-        priceCurrencyLabel.textProperty().bind(createStringBinding(() -> BSFormatter.getCounterCurrency(model.dataModel.getCurrencyCode())));
+        priceCurrencyLabel.textProperty().bind(createStringBinding(() -> XmrBSFormatter.getCounterCurrency(model.dataModel.getCurrencyCode())));
         priceAsPercentageLabel.prefWidthProperty().bind(priceCurrencyLabel.widthProperty());
         nextButton.disableProperty().bind(model.isNextButtonDisabled);
-        tradeFeeInBtcLabel.textProperty().bind(model.tradeFeeInBtcWithFiat);
+        tradeFeeInBtcLabel.textProperty().bind(model.tradeFeeInXmrWithFiat);
         tradeFeeInBsqLabel.textProperty().bind(model.tradeFeeInBsqWithFiat);
         tradeFeeDescriptionLabel.textProperty().bind(model.tradeFeeDescription);
         tradeFeeInBtcLabel.visibleProperty().bind(model.isTradeFeeVisible);
@@ -611,11 +615,11 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
         tradeFeeDescriptionLabel.managedProperty().bind(tradeFeeDescriptionLabel.visibleProperty());
 
         // funding
-        fundingHBox.visibleProperty().bind(model.dataModel.getIsBtcWalletFunded().not().and(model.showPayFundsScreenDisplayed));
-        fundingHBox.managedProperty().bind(model.dataModel.getIsBtcWalletFunded().not().and(model.showPayFundsScreenDisplayed));
+        fundingHBox.visibleProperty().bind(model.dataModel.getIsXmrWalletFunded().not().and(model.showPayFundsScreenDisplayed));
+        fundingHBox.managedProperty().bind(model.dataModel.getIsXmrWalletFunded().not().and(model.showPayFundsScreenDisplayed));
         waitingForFundsLabel.textProperty().bind(model.spinnerInfoText);
-        takeOfferBox.visibleProperty().bind(model.dataModel.getIsBtcWalletFunded().and(model.showPayFundsScreenDisplayed));
-        takeOfferBox.managedProperty().bind(model.dataModel.getIsBtcWalletFunded().and(model.showPayFundsScreenDisplayed));
+        takeOfferBox.visibleProperty().bind(model.dataModel.getIsXmrWalletFunded().and(model.showPayFundsScreenDisplayed));
+        takeOfferBox.managedProperty().bind(model.dataModel.getIsXmrWalletFunded().and(model.showPayFundsScreenDisplayed));
         takeOfferButton.disableProperty().bind(model.isTakeOfferButtonDisabled);
     }
 
@@ -623,7 +627,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
         amountTextField.textProperty().unbindBidirectional(model.amount);
         volumeTextField.textProperty().unbindBidirectional(model.volume);
         totalToPayTextField.textProperty().unbind();
-        addressTextField.amountAsCoinProperty().unbind();
+        XmrAddressTextField.amountAsCoinProperty().unbind();
         amountTextField.validationResultProperty().unbind();
         priceCurrencyLabel.textProperty().unbind();
         priceAsPercentageLabel.prefWidthProperty().unbind();
@@ -757,7 +761,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
                         .show();
         });*/
 
-        balanceSubscription = EasyBind.subscribe(model.dataModel.getBalance(), balanceTextField::setBalance);
+        balanceSubscription = EasyBind.subscribe(model.dataModel.getBalance(), XmrBalanceTextField::setBalance);
         cancelButton2StyleSubscription = EasyBind.subscribe(takeOfferButton.visibleProperty(),
                 isVisible -> cancelButton2.setId(isVisible ? "cancel-button" : null));
     }
@@ -920,17 +924,17 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
     }
 
     private void showFeeOption() {
-        boolean isPreferredFeeCurrencyBtc = model.dataModel.isPreferredFeeCurrencyBtc();
+        boolean isPreferredFeeCurrencyBtc = model.dataModel.isPreferredFeeCurrencyXmr();
         boolean isBsqForFeeAvailable = model.dataModel.isBsqForFeeAvailable();
         if (!isPreferredFeeCurrencyBtc && !isBsqForFeeAvailable) {
-            Coin takerFee = model.dataModel.getTakerFee(false);
+            Coin takerFee = XmrCoin.fromXmrCoin2Coin(model.dataModel.getTakerFee(false), "BSQ", model.getOffer().getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE));
             String missingBsq = null;
             if (takerFee != null) {
-                missingBsq = Res.get("popup.warning.insufficientBsqFundsForBtcFeePayment",
+                missingBsq = Res.get("popup.warning.insufficientBsqFundsForFeePayment", Trade.TradeBaseCurrency.XMR.name(),
                         bsqFormatter.formatCoinWithCode(takerFee.subtract(model.dataModel.getBsqBalance())));
 
             } else if (model.dataModel.getBsqBalance().isZero()) {
-                missingBsq = Res.get("popup.warning.noBsqFundsForBtcFeePayment");
+                missingBsq = Res.get("popup.warning.noBsqFundsForFeePayment");
             }
 
             if (missingBsq != null) {
@@ -976,7 +980,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
         Tooltip.install(qrCodeImageView, new Tooltip(Res.get("shared.openLargeQRWindow")));
         qrCodeImageView.setOnMouseClicked(e -> GUIUtil.showFeeInfoBeforeExecute(
                 () -> UserThread.runAfter(
-                        () -> new QRCodeWindow(getBitcoinURI()).show(),
+                        () -> new QRCodeWindow(getMoneroURI()).show(),
                         200, TimeUnit.MILLISECONDS)));
         GridPane.setRowIndex(qrCodeImageView, gridRow);
         GridPane.setColumnIndex(qrCodeImageView, 1);
@@ -985,11 +989,11 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
         GridPane.setMargin(qrCodeImageView, new Insets(Layout.FIRST_ROW_DISTANCE - 9, 0, 0, 10));
         gridPane.getChildren().add(qrCodeImageView);
 
-        addressTextField = addAddressTextField(gridPane, ++gridRow, Res.get("shared.tradeWalletAddress"));
-        addressTextField.setVisible(false);
+        XmrAddressTextField = addXmrAddressTextField(gridPane, ++gridRow, Res.get("shared.tradeWalletAddress"));
+        XmrAddressTextField.setVisible(false);
 
-        balanceTextField = addBalanceTextField(gridPane, ++gridRow, Res.get("shared.tradeWalletBalance"));
-        balanceTextField.setVisible(false);
+        XmrBalanceTextField = addXmrBalanceTextField(gridPane, ++gridRow, Res.get("shared.tradeWalletBalance"));
+        XmrBalanceTextField.setVisible(false);
 
         fundingHBox = new HBox();
         fundingHBox.setVisible(false);
@@ -1045,7 +1049,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
         fundingHBox.getChildren().add(cancelButton2);
 
         cancelButton2.setOnAction(e -> {
-            if (model.dataModel.getIsBtcWalletFunded().get()) {
+            if (model.dataModel.getIsXmrWalletFunded().get()) {
                 new Popup<>().warning(Res.get("takeOffer.alreadyFunded.askCancel"))
                         .closeButtonText(Res.get("shared.no"))
                         .actionButtonText(Res.get("shared.yesCancel"))
@@ -1065,7 +1069,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
 
     private void openWallet() {
         try {
-            Utilities.openURI(URI.create(getBitcoinURI()));
+            Utilities.openURI(URI.create(getMoneroURI()));
         } catch (Exception ex) {
             log.warn(ex.getMessage());
             new Popup<>().warning(Res.get("shared.openDefaultWalletFailed")).show();
@@ -1073,15 +1077,14 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
     }
 
     @NotNull
-    private String getBitcoinURI() {
-        return GUIUtil.getBitcoinURI(model.dataModel.getAddressEntry().getAddressString(),
-                model.dataModel.getMissingCoin().get(),
-                model.getPaymentLabel());
+    private String getMoneroURI() {
+    	//TODO(niyid) Return Monero URI
+        return "";
     }
 
     private void addAmountPriceFields() {
         // amountBox
-        Tuple3<HBox, InputTextField, Label> amountValueCurrencyBoxTuple = getEditableValueBox(Res.get("takeOffer.amount.prompt"));
+        Tuple3<HBox, InputTextField, Label> amountValueCurrencyBoxTuple = getEditableValueBox(Res.get("takeOffer.amount.prompt", Trade.TradeBaseCurrency.XMR), Trade.TradeBaseCurrency.XMR.name());
         amountValueCurrencyBox = amountValueCurrencyBoxTuple.first;
         amountTextField = amountValueCurrencyBoxTuple.second;
         amountCurrency = amountValueCurrencyBoxTuple.third;
@@ -1101,7 +1104,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
         priceTextField = priceValueCurrencyBoxTuple.second;
         priceCurrencyLabel = priceValueCurrencyBoxTuple.third;
         Tuple2<Label, VBox> priceInputBoxTuple = getTradeInputBox(priceValueCurrencyBox,
-                Res.get("takeOffer.amountPriceBox.priceDescription"));
+                Res.get("takeOffer.amountPriceBox.priceDescription", Trade.TradeBaseCurrency.XMR));
         priceDescriptionLabel = priceInputBoxTuple.first;
 
         getSmallIconForLabel(MaterialDesignIcon.LOCK, priceDescriptionLabel);
@@ -1220,15 +1223,15 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
     ///////////////////////////////////////////////////////////////////////////////////////////
 
 
-    private void showInsufficientBsqFundsForBtcFeePaymentPopup() {
-        Coin takerFee = model.dataModel.getTakerFee(false);
+    private void showInsufficientBsqFundsForXmrFeePaymentPopup() {
+        Coin takerFee = XmrCoin.fromXmrCoin2Coin(model.dataModel.getTakerFee(false), "BSQ", model.getOffer().getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE));
         String message = null;
         if (takerFee != null)
-            message = Res.get("popup.warning.insufficientBsqFundsForBtcFeePayment",
+            message = Res.get("popup.warning.insufficientBsqFundsForFeePayment", Trade.TradeBaseCurrency.XMR.name(),
                     bsqFormatter.formatCoinWithCode(takerFee.subtract(model.dataModel.getBsqBalance())));
 
         else if (model.dataModel.getBsqBalance().isZero())
-            message = Res.get("popup.warning.noBsqFundsForBtcFeePayment");
+            message = Res.get("popup.warning.noBsqFundsForFeePayment");
 
         if (message != null)
             new Popup<>().warning(message)

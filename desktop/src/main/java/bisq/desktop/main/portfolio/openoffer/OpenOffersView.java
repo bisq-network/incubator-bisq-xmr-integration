@@ -85,7 +85,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
     @Override
     public void initialize() {
         priceColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.price")));
-        amountColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.BTCMinMax")));
+        amountColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.XXXMinMax")));
         volumeColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.amountMinMax")));
         marketColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.market")));
         directionColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.offerType")));

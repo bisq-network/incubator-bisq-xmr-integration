@@ -571,7 +571,7 @@ class TakeOfferDataModel extends OfferDataModel {
             result = customAmount.isPositive() && customAmount.isLessThan(Restrictions.getMinNonDustOutput());
 
             if (result)
-                log.info("would create dust for maker, customAmount={},  Restrictions.getMinNonDustOutput()={}", customAmount, Restrictions.getMinNonDustOutput());
+                log.info("would create dust for maker, customAmount={},  XmrRestrictions.getMinNonDustOutput()={}", customAmount, Restrictions.getMinNonDustOutput());
         } else {
             result = true;
         }

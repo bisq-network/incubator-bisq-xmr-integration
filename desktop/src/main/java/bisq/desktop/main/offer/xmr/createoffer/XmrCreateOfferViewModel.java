@@ -19,10 +19,10 @@ package bisq.desktop.main.offer.xmr.createoffer;
 
 import bisq.desktop.Navigation;
 import bisq.desktop.common.model.ViewModel;
-import bisq.desktop.main.offer.MutableOfferViewModel;
+import bisq.desktop.main.offer.xmr.XmrMutableOfferViewModel;
 import bisq.desktop.util.validation.AltcoinValidator;
 import bisq.desktop.util.validation.BsqValidator;
-import bisq.desktop.util.validation.BtcValidator;
+import bisq.desktop.util.validation.Xmr2Validator;
 import bisq.desktop.util.validation.FiatPriceValidator;
 import bisq.desktop.util.validation.FiatVolumeValidator;
 import bisq.desktop.util.validation.SecurityDepositValidator;
@@ -30,27 +30,29 @@ import bisq.desktop.util.validation.SecurityDepositValidator;
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.user.Preferences;
-import bisq.core.util.BSFormatter;
+import bisq.core.util.XmrBSFormatter;
+import bisq.core.xmr.wallet.XmrWalletRpcWrapper;
 import bisq.core.util.BsqFormatter;
 
 import com.google.inject.Inject;
 
-class XmrCreateOfferViewModel extends MutableOfferViewModel<XmrCreateOfferDataModel> implements ViewModel {
+class XmrCreateOfferViewModel extends XmrMutableOfferViewModel<XmrCreateOfferDataModel> implements ViewModel {
 
     @Inject
     public XmrCreateOfferViewModel(XmrCreateOfferDataModel dataModel,
                                 FiatVolumeValidator fiatVolumeValidator,
                                 FiatPriceValidator fiatPriceValidator,
                                 AltcoinValidator altcoinValidator,
-                                BtcValidator btcValidator,
+                                Xmr2Validator btcValidator,
                                 BsqValidator bsqValidator,
                                 SecurityDepositValidator securityDepositValidator,
                                 PriceFeedService priceFeedService,
                                 AccountAgeWitnessService accountAgeWitnessService,
                                 Navigation navigation,
                                 Preferences preferences,
-                                BSFormatter btcFormatter,
-                                BsqFormatter bsqFormatter) {
+                                XmrBSFormatter xmrFormatter,
+                                BsqFormatter bsqFormatter,
+                                XmrWalletRpcWrapper xmrWalletWrapper) {
         super(dataModel,
                 fiatVolumeValidator,
                 fiatPriceValidator,
@@ -62,6 +64,8 @@ class XmrCreateOfferViewModel extends MutableOfferViewModel<XmrCreateOfferDataMo
                 accountAgeWitnessService,
                 navigation,
                 preferences,
-                btcFormatter, bsqFormatter);
+                xmrFormatter,
+                bsqFormatter,
+                xmrWalletWrapper);
     }
 }

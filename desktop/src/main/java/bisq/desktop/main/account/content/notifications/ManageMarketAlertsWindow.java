@@ -163,7 +163,7 @@ public class ManageMarketAlertsWindow extends Overlay<ManageMarketAlertsWindow> 
                             public void updateItem(final MarketAlertFilter item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null && !empty) {
-                                    setText(item.isBuyOffer() ? Res.get("shared.buyBitcoin") : Res.get("shared.sellBitcoin"));
+                                    setText(item.isBuyOffer() ? Res.get("shared.buyXxx") : Res.get("shared.sellXxx"));
                                 } else {
                                     setText("");
                                 }

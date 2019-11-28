@@ -53,7 +53,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static bisq.desktop.main.offer.MutableOfferView.BUYER_SECURITY_DEPOSIT_NEWS;
+import static bisq.desktop.main.offer.xmr.XmrMutableOfferView.BUYER_SECURITY_DEPOSIT_NEWS;
 
 public abstract class XmrOfferView extends ActivatableView<TabPane, Void> {
 
@@ -168,7 +168,7 @@ public abstract class XmrOfferView extends ActivatableView<TabPane, Void> {
         if (viewClass == XmrOfferBookView.class && offerBookView == null) {
             view = viewLoader.load(viewClass);
             // Offerbook must not be cached by ViewLoader as we use 2 instances for sell and buy screens.
-//            offerBookTab = new Tab(isBuy ? Res.get("shared.buyBitcoin").toUpperCase() : Res.get("shared.sellBitcoin").toUpperCase());
+//            offerBookTab = new Tab(isBuy ? Res.get("shared.buyXxx").toUpperCase() : Res.get("shared.sellXxx").toUpperCase());
             offerBookTab = new Tab(Res.get("offerbook.availableOffers").toUpperCase());
             offerBookTab.setClosable(false);
             offerBookTab.setContent(view.getRoot());

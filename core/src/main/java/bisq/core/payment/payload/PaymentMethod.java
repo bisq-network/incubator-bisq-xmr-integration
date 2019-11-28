@@ -21,7 +21,7 @@ import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.TradeLimits;
-
+import bisq.core.xmr.XmrCoin;
 import bisq.common.proto.persistable.PersistablePayload;
 
 import org.bitcoinj.core.Coin;
@@ -309,6 +309,30 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         checkNotNull(tradeLimits, "tradeLimits must not be null");
         long maxTradeLimit = tradeLimits.getMaxTradeLimit().value;
         return Coin.valueOf(tradeLimits.getRoundedRiskBasedTradeLimit(maxTradeLimit, riskFactor));
+    }
+
+    public XmrCoin getXmrMaxTradeLimitAsCoin(String currencyCode) {
+        // Hack for SF as the smallest unit is 1 SF ;-( and price is about 3 BTC!
+        if (currencyCode.equals("SF"))
+            return XmrCoin.parseCoin("4");
+
+        // We use the class field maxTradeLimit only for mapping the risk factor.
+        long riskFactor;
+        if (maxTradeLimit == DEFAULT_TRADE_LIMIT_VERY_LOW_RISK.value)
+            riskFactor = 1;
+        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_LOW_RISK.value)
+            riskFactor = 2;
+        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_MID_RISK.value)
+            riskFactor = 4;
+        else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_HIGH_RISK.value)
+            riskFactor = 8;
+        else
+            throw new RuntimeException("maxTradeLimit is not matching one of our default values. maxTradeLimit=" + Coin.valueOf(maxTradeLimit).toFriendlyString());
+
+        TradeLimits tradeLimits = TradeLimits.getINSTANCE();
+        checkNotNull(tradeLimits, "tradeLimits must not be null");
+        long maxTradeLimit = tradeLimits.getMaxTradeLimit().value;
+        return XmrCoin.valueOf(tradeLimits.getRoundedRiskBasedTradeLimit(maxTradeLimit, riskFactor));
     }
 
     @Override

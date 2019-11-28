@@ -54,6 +54,8 @@ import bisq.core.offer.Offer;
 import bisq.core.offer.OfferPayload;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.trade.Trade;
+import bisq.core.trade.Trade.TradeBaseCurrency;
 import bisq.core.user.DontShowAgainLookup;
 import bisq.core.user.Preferences;
 import bisq.core.util.BSFormatter;
@@ -372,11 +374,11 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel> extends 
         Coin makerFee = model.getDataModel().getMakerFee(false);
         String message = null;
         if (makerFee != null) {
-            message = Res.get("popup.warning.insufficientBsqFundsForBtcFeePayment",
+            message = Res.get("popup.warning.insufficientBsqFundsForFeePayment", Trade.TradeBaseCurrency.BTC.name(),
                     bsqFormatter.formatCoinWithCode(makerFee.subtract(model.getDataModel().getBsqBalance())));
 
         } else if (model.getDataModel().getBsqBalance().isZero())
-            message = Res.get("popup.warning.noBsqFundsForBtcFeePayment");
+            message = Res.get("popup.warning.noBsqFundsForFeePayment");
 
         if (message != null)
             new Popup<>().warning(message)
@@ -1082,11 +1084,11 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel> extends 
             Coin makerFee = model.getDataModel().getMakerFee(false);
             String missingBsq = null;
             if (makerFee != null) {
-                missingBsq = Res.get("popup.warning.insufficientBsqFundsForBtcFeePayment",
+                missingBsq = Res.get("popup.warning.insufficientBsqFundsForFeePayment", Trade.TradeBaseCurrency.BTC.name(),
                         bsqFormatter.formatCoinWithCode(makerFee.subtract(model.getDataModel().getBsqBalance())));
 
             } else if (model.getDataModel().getBsqBalance().isZero()) {
-                missingBsq = Res.get("popup.warning.noBsqFundsForBtcFeePayment");
+                missingBsq = Res.get("popup.warning.noBsqFundsForFeePayment");
             }
 
             if (missingBsq != null) {
@@ -1253,7 +1255,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel> extends 
 
     private void addAmountPriceFields() {
         // amountBox
-        Tuple3<HBox, InputTextField, Label> amountValueCurrencyBoxTuple = getEditableValueBox(Res.get("createOffer.amount.prompt"));
+        Tuple3<HBox, InputTextField, Label> amountValueCurrencyBoxTuple = getEditableValueBox(Res.get("createOffer.amount.prompt", Trade.TradeBaseCurrency.BTC));
         amountValueCurrencyBox = amountValueCurrencyBoxTuple.first;
         amountTextField = amountValueCurrencyBoxTuple.second;
         editOfferElements.add(amountTextField);
@@ -1292,7 +1294,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel> extends 
         resultLabel.getStyleClass().add("opaque-icon-character");
 
         // volume
-        Tuple3<HBox, InfoInputTextField, Label> volumeValueCurrencyBoxTuple = getEditableValueBoxWithInfo(Res.get("createOffer.volume.prompt"));
+        Tuple3<HBox, InfoInputTextField, Label> volumeValueCurrencyBoxTuple = getEditableValueBoxWithInfo(Res.get("createOffer.volume.prompt", Trade.TradeBaseCurrency.BTC));
         volumeValueCurrencyBox = volumeValueCurrencyBoxTuple.first;
         volumeInfoInputTextField = volumeValueCurrencyBoxTuple.second;
         volumeTextField = volumeInfoInputTextField.getInputTextField();
@@ -1364,14 +1366,14 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel> extends 
         marketBasedPriceTextField.setPromptText(Res.get("shared.enterPercentageValue"));
         marketBasedPriceLabel.setText("%");
 
-        Tuple3<HBox, InputTextField, Label> amountValueCurrencyBoxTuple = getEditableValueBox(Res.get("createOffer.amount.prompt"));
+        Tuple3<HBox, InputTextField, Label> amountValueCurrencyBoxTuple = getEditableValueBox(Res.get("createOffer.amount.prompt", Trade.TradeBaseCurrency.BTC));
         minAmountValueCurrencyBox = amountValueCurrencyBoxTuple.first;
         minAmountTextField = amountValueCurrencyBoxTuple.second;
         editOfferElements.add(minAmountTextField);
         minAmountBtcLabel = amountValueCurrencyBoxTuple.third;
         editOfferElements.add(minAmountBtcLabel);
 
-        Tuple2<Label, VBox> amountInputBoxTuple = getTradeInputBox(minAmountValueCurrencyBox, Res.get("createOffer.amountPriceBox.minAmountDescription"));
+        Tuple2<Label, VBox> amountInputBoxTuple = getTradeInputBox(minAmountValueCurrencyBox, Res.get("createOffer.amountPriceBox.minAmountDescription", Trade.TradeBaseCurrency.BTC));
 
 
         fakeXLabel = new Label();
