@@ -19,26 +19,30 @@ package bisq.desktop.util.validation;
 
 import bisq.core.xmr.wallet.XmrRestrictions;
 import bisq.core.locale.Res;
-import bisq.core.util.BSFormatter;
 import bisq.core.util.XmrBSFormatter;
 import bisq.core.xmr.XmrCoin;
 
 import javax.inject.Inject;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.math.BigDecimal;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
 
+@Slf4j
+//TODO(niyid) Merge with XmrValidator
 public class Xmr2Validator extends NumberValidator {
 
     protected final XmrBSFormatter formatter;
 
     @Nullable
     @Setter
-    protected XmrCoin minValue;
+    protected XmrCoin minValue = XmrCoin.DUST;
 
     @Nullable
     @Setter
@@ -52,6 +56,7 @@ public class Xmr2Validator extends NumberValidator {
     @Inject
     public Xmr2Validator(XmrBSFormatter formatter) {
         this.formatter = formatter;
+        setMaxValue(XmrCoin.parseCoin("1000"));
     }
 
 
@@ -74,6 +79,10 @@ public class Xmr2Validator extends NumberValidator {
         }
 
         return result;
+    }
+    
+    public void setMaxValue(@NotNull XmrCoin maxValue) {
+    	this.maxValue = maxValue;
     }
 
     protected ValidationResult validateIfAboveDust(String input) {
@@ -105,10 +114,11 @@ public class Xmr2Validator extends NumberValidator {
     protected ValidationResult validateIfNotExceedsMaxXmrValue(String input) {
         try {
             final XmrCoin coin = XmrCoin.parseCoin(input);
-            if (maxValue != null && coin.compareTo(maxValue) > 0)
+            if (maxValue != null && coin.compareTo(maxValue) > 0) {
                 return new ValidationResult(false, Res.get("validation.xmr.toLarge", formatter.formatCoinWithCode(maxValue)));
-            else
+            } else {
                 return new ValidationResult(true);
+            }
         } catch (Throwable t) {
             return new ValidationResult(false, Res.get("validation.invalidInput", t.getMessage()));
         }

@@ -1546,6 +1546,7 @@ message PreferencesPayload {
     string xmr_rpc_pwd = 60;
     repeated string xmr_hosts = 61;
     int32 xmr_host_option_ordinal = 62;    
+    bool pay_fee_in_xmr = 63;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

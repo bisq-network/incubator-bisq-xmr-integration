@@ -144,7 +144,7 @@ class XmrTakeOfferDataModel extends XmrOfferDataModel {
                        Navigation navigation,
                        P2PService p2PService
     ) {
-        super(xmrWalletWrapper);
+        super(bsqWalletService, xmrWalletWrapper, priceFeedService);
 
         this.tradeManager = tradeManager;
         this.btcWalletService = btcWalletService;
@@ -203,8 +203,6 @@ class XmrTakeOfferDataModel extends XmrOfferDataModel {
     void initWithData(Offer offer) {
         this.offer = offer;
         tradePrice = offer.getPrice();
-        addressEntry = xmrWalletWrapper.getOrCreateAddressEntry(offer.getId());
-        checkNotNull(addressEntry, "addressEntry must not be null");
 
         ObservableList<PaymentAccount> possiblePaymentAccounts = getPossiblePaymentAccounts();
         checkArgument(!possiblePaymentAccounts.isEmpty(), "possiblePaymentAccounts.isEmpty()");
@@ -252,7 +250,8 @@ class XmrTakeOfferDataModel extends XmrOfferDataModel {
         calculateVolume();
         calculateTotalToPay();
 
-        balanceListener = new XmrBalanceListener(addressEntry) {
+        //TODO(niyid) No Address
+        balanceListener = new XmrBalanceListener(null) {
             @Override
             public void onBalanceChanged(XmrCoin balance, MoneroTx tx) {
                 updateBalance();
@@ -303,7 +302,7 @@ class XmrTakeOfferDataModel extends XmrOfferDataModel {
     }
 
     public void onClose() {
-        xmrWalletWrapper.resetAddressEntriesForOpenOffer(offer.getId());
+    	btcWalletService.resetAddressEntriesForOpenOffer(offer.getId());
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -332,12 +331,12 @@ class XmrTakeOfferDataModel extends XmrOfferDataModel {
             new Popup<>().warning(Res.get("offerbook.warning.requireUpdateToNewVersion")).show();
         } else {
         	//TODO(niyid) TradeManager for XMR required
-            tradeManager.onTakeOffer(XmrCoin.fromXmrCoin2Coin(amount.get(), "BTC", offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)),
-            		XmrCoin.fromXmrCoin2Coin(txFeeFromXmrFeeService, "BTC", offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)),
-            		XmrCoin.fromXmrCoin2Coin(getTakerFee(), "BTC", offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)),
+            tradeManager.onTakeOffer(XmrCoin.fromXmrCoin2Coin(amount.get(), "BSQ", offer.getExtraDataMap().get(OfferPayload.XMR_TO_BSQ_RATE)),
+            		XmrCoin.fromXmrCoin2Coin(txFeeFromXmrFeeService, "BSQ", offer.getExtraDataMap().get(OfferPayload.XMR_TO_BSQ_RATE)),
+            		XmrCoin.fromXmrCoin2Coin(getTakerFee(), "BSQ", offer.getExtraDataMap().get(OfferPayload.XMR_TO_BSQ_RATE)),
                     false,
                     tradePrice.getValue(),
-                    XmrCoin.fromXmrCoin2Coin(fundsNeededForTrade, "BTC", offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)),
+                    XmrCoin.fromXmrCoin2Coin(fundsNeededForTrade, "BTC", offer.getExtraDataMap().get(OfferPayload.XMR_TO_BSQ_RATE)),
                     offer,
                     paymentAccount.getId(),
                     false,
@@ -379,9 +378,9 @@ class XmrTakeOfferDataModel extends XmrOfferDataModel {
             // We sum the taker fee tx and the deposit tx together as it can be assumed that both be in the same block and
             // as they are dependent txs the miner will pick both if the fee in total is good enough.
             // We make sure that the fee is sufficient to meet our intended fee/byte for the larger payout tx with 380 bytes.
-            Tuple2<Coin, Integer> estimatedFeeAndTxSize = txFeeEstimationService.getEstimatedFeeAndTxSizeForTaker(XmrCoin.fromXmrCoin2Coin(fundsNeededForTrade, "BSQ", offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)),
-            		XmrCoin.fromXmrCoin2Coin(getTakerFee(), "BSQ", offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)));
-            txFeeFromXmrFeeService = XmrCoin.fromCoin2XmrCoin(estimatedFeeAndTxSize.first, offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE));
+            Tuple2<Coin, Integer> estimatedFeeAndTxSize = txFeeEstimationService.getEstimatedFeeAndTxSizeForTaker(XmrCoin.fromXmrCoin2Coin(fundsNeededForTrade, "BSQ", offer.getExtraDataMap().get(OfferPayload.XMR_TO_BSQ_RATE)),
+            		XmrCoin.fromXmrCoin2Coin(getTakerFee(), "BSQ", offer.getExtraDataMap().get(OfferPayload.XMR_TO_BSQ_RATE)));
+            txFeeFromXmrFeeService = XmrCoin.fromCoin2XmrCoin(estimatedFeeAndTxSize.first, offer.getExtraDataMap().get(OfferPayload.XMR_TO_BSQ_RATE));
             feeTxSize = estimatedFeeAndTxSize.second;
         } else {
             feeTxSize = 380;
@@ -399,7 +398,7 @@ class XmrTakeOfferDataModel extends XmrOfferDataModel {
             this.paymentAccount = paymentAccount;
 
             long myLimit = getMaxTradeLimit();
-            this.amount.set(XmrCoin.valueOf(Math.max(offer.getMinAmount().value, Math.min(amount.get().value, myLimit))));
+            this.amount.set(XmrCoin.valueOf(Math.max(XmrCoin.fromCoin2XmrCoin(offer.getMinAmount(), offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)).value, Math.min(amount.get().value, myLimit))));
 
             preferences.setTakeOfferSelectedPaymentAccountId(paymentAccount.getId());
         }
@@ -484,7 +483,7 @@ class XmrTakeOfferDataModel extends XmrOfferDataModel {
         if (tradePrice != null && offer != null &&
                 amount.get() != null &&
                 !amount.get().isZero()) {
-            Volume volumeByAmount = tradePrice.getVolumeByAmount(XmrCoin.fromXmrCoin2Coin(amount.get(), "BTC", offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)));
+            Volume volumeByAmount = tradePrice.getVolumeByAmount(Coin.valueOf(amount.get().value));
             if (offer.getPaymentMethod().getId().equals(PaymentMethod.HAL_CASH_ID))
                 volumeByAmount = XmrOfferUtil.getAdjustedVolumeForHalCash(volumeByAmount);
             else if (CurrencyUtil.isFiatCurrency(getCurrencyCode()))
@@ -639,8 +638,9 @@ class XmrTakeOfferDataModel extends XmrOfferDataModel {
         return txFeeFromXmrFeeService; //feeService.getTxFee(380);
     }
 
-    public Address getAddressEntry() {
-        return addressEntry;
+    //TODO(niyid) How to find address???
+    public String getAddressEntry() {
+        return bsqWalletService.getUnusedBsqAddressAsString();
     }
 
     public XmrCoin getSecurityDeposit() {
@@ -672,7 +672,7 @@ class XmrTakeOfferDataModel extends XmrOfferDataModel {
     }
 
     public boolean isPreferredFeeCurrencyXmr() {
-        return preferences.isUseBisqXmrWallet();
+        return preferences.isPayFeeInXmr();
     }
 
     public XmrCoin getTakerFeeInXmr() {
@@ -684,7 +684,7 @@ class XmrTakeOfferDataModel extends XmrOfferDataModel {
     }
 
     boolean isTakerFeeValid() {
-        return preferences.isUseBisqXmrWallet() || XmrOfferUtil.isBsqForTakerFeeAvailable(bsqWalletService, XmrCoin.fromXmrCoin2Coin(amount.get(), "BSQ", offer.getExtraDataMap().get(OfferPayload.XMR_TO_BSQ_RATE)), offer.getExtraDataMap().get(OfferPayload.XMR_TO_BSQ_RATE));
+        return preferences.isPayFeeInXmr() || XmrOfferUtil.isBsqForTakerFeeAvailable(bsqWalletService, XmrCoin.fromXmrCoin2Coin(amount.get(), "BSQ", offer.getExtraDataMap().get(OfferPayload.XMR_TO_BSQ_RATE)), offer.getExtraDataMap().get(OfferPayload.XMR_TO_BSQ_RATE));
     }
 
     public boolean isBsqForFeeAvailable() {

@@ -309,7 +309,7 @@ public class DisplayUtils {
     
     public static XmrCoin parseToCoinWith4Decimals(String input, XmrBSFormatter bsFormatter) {
         try {
-            return XmrCoin.valueOf(new BigDecimal(input).longValueExact());
+            return XmrCoin.valueOf(new BigDecimal(input).longValueExact() * 1000000000000l); //Recalibrate by smallest unit exp=12
         } catch (Throwable t) {
             if (input != null && input.length() > 0)
                 log.warn("Exception at parseToCoinWith4Decimals: " + t.toString());

@@ -77,14 +77,6 @@ public class XmrOfferBook {
                     // We don't use the contains method as the equals method in Offer takes state and errorMessage into account.
                     // If we have an offer with same ID we remove it and add the new offer as it might have a changed state.
                     Optional<XmrOfferBookListItem> candidateWithSameId = offerBookListItems.stream()
-                    		.filter(new Predicate<>() {
-    							@Override
-    							public boolean test(XmrOfferBookListItem item) {
-    								return CurrencyUtil.isFiatCurrency(item.getOffer().getCurrencyCode()) ? 
-    										Trade.TradeBaseCurrency.XMR.name().equals(item.getOffer().getOfferPayload().getBaseCurrencyCode()) :
-    										Trade.TradeBaseCurrency.XMR.name().equals(item.getOffer().getOfferPayload().getCounterCurrencyCode());
-    							}
-        					})
                             .filter(item -> item.getOffer().getId().equals(offer.getId()))
                             .findAny();
                     if (candidateWithSameId.isPresent()) {
@@ -108,14 +100,6 @@ public class XmrOfferBook {
                 tradeManager.onOfferRemovedFromRemoteOfferBook(offer);
                 // We don't use the contains method as the equals method in Offer takes state and errorMessage into account.
                 Optional<XmrOfferBookListItem> candidateToRemove = offerBookListItems.stream()
-                		.filter(new Predicate<>() {
-							@Override
-							public boolean test(XmrOfferBookListItem item) {
-								return CurrencyUtil.isFiatCurrency(item.getOffer().getCurrencyCode()) ? 
-										Trade.TradeBaseCurrency.XMR.name().equals(item.getOffer().getOfferPayload().getBaseCurrencyCode()) :
-										Trade.TradeBaseCurrency.XMR.name().equals(item.getOffer().getOfferPayload().getCounterCurrencyCode());
-							}
-    					})
                         .filter(item -> item.getOffer().getId().equals(offer.getId()))
                         .findAny();
                 candidateToRemove.ifPresent(offerBookListItems::remove);
@@ -135,13 +119,7 @@ public class XmrOfferBook {
             // Investigate why....
             offerBookListItems.clear();
             offerBookListItems.addAll(offerBookService.getOffers().stream()
-            		.filter(new Predicate<>() {
-
-						@Override
-						public boolean test(Offer o) {
-							return o.getExtraDataMap() != null && o.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE) != null;
-						}
-					})
+            		.filter(o -> o.getExtraDataMap().containsKey(OfferPayload.XMR_TO_BTC_RATE))
                     .map(XmrOfferBookListItem::new)
                     .collect(Collectors.toList()));
 

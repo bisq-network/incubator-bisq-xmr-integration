@@ -21,7 +21,6 @@ import javax.inject.Inject;
 
 import bisq.core.locale.Res;
 import bisq.core.trade.Trade;
-import bisq.core.trade.Trade.TradeBaseCurrency;
 import bisq.core.user.Preferences;
 import bisq.desktop.Navigation;
 import bisq.desktop.common.model.Activatable;
@@ -61,7 +60,6 @@ public class TradeBaseView extends ActivatableViewAndModel<TabPane, Activatable>
 
     @Override
     public void initialize() {
-    	log.info("initialize({})", selectedTab);
     	root.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
         tradeBuyTab.setText(Res.get("mainView.menu.trade.buy", selectedBaseCurrency.toString()).toUpperCase());
         tradeSellTab.setText(Res.get("mainView.menu.trade.sell", selectedBaseCurrency.toString()).toUpperCase());
@@ -71,7 +69,6 @@ public class TradeBaseView extends ActivatableViewAndModel<TabPane, Activatable>
         }
         selectView();
         navigationListener = viewPath -> {
-        	log.info("viewPath={}, size={}", viewPath, viewPath.size());
             if (viewPath.size() == 2 && navigation.getCurrentPath().get(1) == getClass()) {
             	selectView();
             }
@@ -101,7 +98,6 @@ public class TradeBaseView extends ActivatableViewAndModel<TabPane, Activatable>
 
 	@Override
     protected void activate() {
-    	log.info("activate({})", selectedTab);
     	navigation.addListener(navigationListener);
         root.getSelectionModel().selectedItemProperty().addListener(tabChangeListener);
 
@@ -121,13 +117,11 @@ public class TradeBaseView extends ActivatableViewAndModel<TabPane, Activatable>
 
     @Override
     protected void deactivate() {
-    	log.info("deactivate()");
         navigation.removeListener(navigationListener);
         root.getSelectionModel().selectedItemProperty().removeListener(tabChangeListener);
     }
 
     private void loadView(Class<? extends View> viewClass) {
-    	log.info("loadView: " + viewClass);
         if (selectedTab != null && selectedTab.getContent() != null) {
             if (selectedTab.getContent() instanceof ScrollPane) {
                 ((ScrollPane) selectedTab.getContent()).setContent(null);

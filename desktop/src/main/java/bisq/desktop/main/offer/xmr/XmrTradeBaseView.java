@@ -61,7 +61,6 @@ public class XmrTradeBaseView extends ActivatableViewAndModel<TabPane, Activatab
 
     @Override
     public void initialize() {
-    	log.info("initialize({})", selectedTab);
     	root.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
         tradeBuyTab.setText(Res.get("mainView.menu.trade.buy", selectedBaseCurrency.toString()).toUpperCase());
         tradeSellTab.setText(Res.get("mainView.menu.trade.sell", selectedBaseCurrency.toString()).toUpperCase());
@@ -71,7 +70,6 @@ public class XmrTradeBaseView extends ActivatableViewAndModel<TabPane, Activatab
         }
         selectView();
         navigationListener = viewPath -> {
-        	log.info("viewPath={}, size={}", viewPath, viewPath.size());
             if (viewPath.size() == 2 && navigation.getCurrentPath().get(1) == getClass()) {
             	selectView();
             }
@@ -101,7 +99,6 @@ public class XmrTradeBaseView extends ActivatableViewAndModel<TabPane, Activatab
 
 	@Override
     protected void activate() {
-    	log.info("activate({})", selectedTab);
     	navigation.addListener(navigationListener);
         root.getSelectionModel().selectedItemProperty().addListener(tabChangeListener);
 
@@ -121,13 +118,11 @@ public class XmrTradeBaseView extends ActivatableViewAndModel<TabPane, Activatab
 
     @Override
     protected void deactivate() {
-    	log.info("deactivate()");
         navigation.removeListener(navigationListener);
         root.getSelectionModel().selectedItemProperty().removeListener(tabChangeListener);
     }
 
     private void loadView(Class<? extends View> viewClass) {
-    	log.info("loadView: " + viewClass);
         if (selectedTab != null && selectedTab.getContent() != null) {
             if (selectedTab.getContent() instanceof ScrollPane) {
                 ((ScrollPane) selectedTab.getContent()).setContent(null);

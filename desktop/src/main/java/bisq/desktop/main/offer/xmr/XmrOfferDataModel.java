@@ -21,8 +21,12 @@ import bisq.desktop.common.model.ActivatableDataModel;
 
 import bisq.core.xmr.wallet.XmrWalletRpcWrapper;
 
+import org.bitcoinj.wallet.Wallet.BalanceType;
+
+import bisq.core.btc.wallet.BsqWalletService;
+import bisq.core.provider.price.MarketPrice;
+import bisq.core.provider.price.PriceFeedService;
 import bisq.core.xmr.XmrCoin;
-import bisq.core.xmr.jsonrpc.result.Address;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -38,6 +42,7 @@ import lombok.Getter;
 public abstract class XmrOfferDataModel extends ActivatableDataModel {
     protected final XmrWalletRpcWrapper xmrWalletWrapper;
 
+    protected final BsqWalletService bsqWalletService;
     @Getter
     protected final BooleanProperty isXmrWalletFunded = new SimpleBooleanProperty();
     @Getter
@@ -51,22 +56,31 @@ public abstract class XmrOfferDataModel extends ActivatableDataModel {
     @Getter
     protected XmrCoin totalAvailableBalance;
     //TODO(niyid) Replace with Address class in monero-java-lite library
-    protected Address addressEntry;
     protected boolean useSavingsWallet;
+    protected MarketPrice xmrMarketPrice;
+    protected MarketPrice bsqMarketPrice;
+    protected final PriceFeedService priceFeedService;
+    protected double bsqToXmrRate;
     
 
-    public XmrOfferDataModel(XmrWalletRpcWrapper xmrWalletWrapper) {
+    public XmrOfferDataModel(BsqWalletService bsqWalletService, XmrWalletRpcWrapper xmrWalletWrapper, PriceFeedService priceFeedService) {
+        this.bsqWalletService = bsqWalletService;
         this.xmrWalletWrapper = xmrWalletWrapper;
+        this.priceFeedService = priceFeedService;
+        xmrMarketPrice = priceFeedService.getMarketPrice("XMR");
+        bsqMarketPrice = priceFeedService.getMarketPrice("BSQ");
     }
 
     protected void updateBalance() {
-    	//TODO(niyid) tradeWallet is multisig wallet created for this trade using the tradeId
-    	if(xmrWalletWrapper != null && addressEntry != null) {
-            XmrCoin tradeWalletBalance = xmrWalletWrapper.getBalanceForAddress(addressEntry.getAddress());
-            log.info("XmrOfferDataModel => {0}", tradeWalletBalance.getValue());
+    	if(bsqWalletService != null) {
+            xmrMarketPrice = priceFeedService.getMarketPrice("XMR");
+            bsqMarketPrice = priceFeedService.getMarketPrice("BSQ");
+    		bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
+            XmrCoin tradeWalletBalance = XmrCoin.fromCoin2XmrCoin(bsqWalletService.getAvailableConfirmedBalance(), String.valueOf(bsqToXmrRate));
+            log.info("BSQ Wallet Balance in XMR => {} ( = {} satoshis)", tradeWalletBalance.toFriendlyString(), tradeWalletBalance.getValue());
             if (useSavingsWallet) {
-            	// savingWallet is primary wallet       	
-                XmrCoin savingWalletBalance = xmrWalletWrapper.getBalance();
+            	// savingWallet is BSQ wallet       	
+                XmrCoin savingWalletBalance = XmrCoin.fromCoin2XmrCoin(bsqWalletService.getBalance(BalanceType.AVAILABLE_SPENDABLE), String.valueOf(bsqToXmrRate));
                 totalAvailableBalance = savingWalletBalance.add(tradeWalletBalance);
                 if (totalToPayAsCoin.get() != null) {
                     if (totalAvailableBalance.compareTo(totalToPayAsCoin.get()) > 0)
@@ -93,9 +107,5 @@ public abstract class XmrOfferDataModel extends ActivatableDataModel {
 
     private boolean isBalanceSufficient(XmrCoin balance) {
         return totalToPayAsCoin.get() != null && balance.compareTo(totalToPayAsCoin.get()) >= 0;
-    }
-    
-    protected void createMultisigWallet(String offerId) {
-    	addressEntry = offerId != null ? xmrWalletWrapper.getOrCreateAddressEntry(offerId) : xmrWalletWrapper.getOrCreateAddressEntry();
     }
 }

@@ -133,7 +133,7 @@ public class MoneroRpcConnection {
 		} catch (MoneroRpcException e2) {
 			throw e2;
 		} catch (Exception e3) {
-			// e3.printStackTrace();
+			e3.printStackTrace();
 			throw new MoneroException(e3);
 		}
 	}
@@ -256,7 +256,12 @@ public class MoneroRpcConnection {
 		if (error == null)
 			return;
 		String msg = (String) error.get("message");
-		int code = ((BigInteger) error.get("code")).intValue();
+		int code = 0;
+		if(error.get("code") instanceof BigInteger) {
+			code = ((BigInteger) error.get("code")).intValue();
+		} else if(error.get("code") instanceof Double) {
+			code = ((Double) error.get("code")).intValue();
+		}
 		throw new MoneroRpcException(msg, code, method, params);
 	}
 }

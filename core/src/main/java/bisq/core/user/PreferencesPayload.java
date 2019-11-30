@@ -136,6 +136,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private String xmrRpcPwd;
     private List<String> xmrHosts = new ArrayList<>();
     private int xmrHostOptionOrdinal;    
+    private boolean payFeeInXmr = false;
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -202,7 +203,8 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 .setXmrRpcUser(xmrRpcUser)
                 .setXmrRpcPwd(xmrRpcPwd)
                 .addAllXmrHosts(xmrHosts)
-                .setXmrHostOptionOrdinal(xmrHostOptionOrdinal);
+                .setXmrHostOptionOrdinal(xmrHostOptionOrdinal)
+                .setPayFeeInXmr(payFeeInXmr);                
         Optional.ofNullable(backupDirectory).ifPresent(builder::setBackupDirectory);
         Optional.ofNullable(preferredTradeCurrency).ifPresent(e -> builder.setPreferredTradeCurrency((protobuf.TradeCurrency) e.toProtoMessage()));
         Optional.ofNullable(offerBookChartScreenCurrencyCode).ifPresent(builder::setOfferBookChartScreenCurrencyCode);
@@ -296,7 +298,8 @@ public final class PreferencesPayload implements PersistableEnvelope {
 	            proto.getXmrRpcUser(),
 	            proto.getXmrRpcPwd(),
 	            proto.getXmrHostsList(),
-	            proto.getXmrHostOptionOrdinal());
+	            proto.getXmrHostOptionOrdinal(),
+	            proto.getPayFeeInXmr());
 
     }
 }

@@ -73,19 +73,19 @@ public class XmrFeeService {
     }
 
     public static XmrCoin getMakerFeePerXmr(boolean currencyForFeeIsXmr, String price) {
-        return currencyForFeeIsXmr ? getFeeFromParamAsCoin(Param.DEFAULT_MAKER_FEE_XMR, price) : getFeeFromParamAsCoin(Param.DEFAULT_MAKER_FEE_BSQ, price);
+        return currencyForFeeIsXmr ? getFeeFromParamAsCoin(Param.DEFAULT_MAKER_FEE_BTC, price) : getFeeFromParamAsCoin(Param.DEFAULT_MAKER_FEE_BSQ, price);
     }
 
     public static XmrCoin getMinMakerFee(boolean currencyForFeeIsXmr, String price) {
-        return currencyForFeeIsXmr ? getFeeFromParamAsCoin(Param.MIN_MAKER_FEE_XMR, price) : getFeeFromParamAsCoin(Param.MIN_MAKER_FEE_BSQ, price);
+        return currencyForFeeIsXmr ? getFeeFromParamAsCoin(Param.MIN_MAKER_FEE_BTC, price) : getFeeFromParamAsCoin(Param.MIN_MAKER_FEE_BSQ, price);
     }
 
     public static XmrCoin getTakerFeePerXmr(boolean currencyForFeeIsXmr, String price) {
-        return currencyForFeeIsXmr ? getFeeFromParamAsCoin(Param.DEFAULT_TAKER_FEE_XMR, price) : getFeeFromParamAsCoin(Param.DEFAULT_TAKER_FEE_BSQ, price);
+        return currencyForFeeIsXmr ? getFeeFromParamAsCoin(Param.DEFAULT_TAKER_FEE_BTC, price) : getFeeFromParamAsCoin(Param.DEFAULT_TAKER_FEE_BSQ, price);
     }
 
     public static XmrCoin getMinTakerFee(boolean currencyForFeeIsXmr, String price) {
-        return currencyForFeeIsXmr ? getFeeFromParamAsCoin(Param.MIN_TAKER_FEE_XMR, price) : getFeeFromParamAsCoin(Param.MIN_TAKER_FEE_BSQ, price);
+        return currencyForFeeIsXmr ? getFeeFromParamAsCoin(Param.MIN_TAKER_FEE_BTC, price) : getFeeFromParamAsCoin(Param.MIN_TAKER_FEE_BSQ, price);
     }
 
 

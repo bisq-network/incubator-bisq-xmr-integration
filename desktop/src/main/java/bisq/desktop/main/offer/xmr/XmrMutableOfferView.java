@@ -151,7 +151,7 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
     private FundsTextField totalToPayTextField;
     private Label amountDescriptionLabel, priceCurrencyLabel, priceDescriptionLabel, volumeDescriptionLabel,
             waitingForFundsLabel, marketBasedPriceLabel, percentagePriceDescription, tradeFeeDescriptionLabel,
-            resultLabel, tradeFeeInBtcLabel, tradeFeeInBsqLabel, xLabel, fakeXLabel, buyerSecurityDepositLabel;
+            resultLabel, tradeFeeInXmrLabel, tradeFeeInBsqLabel, xLabel, fakeXLabel, buyerSecurityDepositLabel;
     protected Label amountBtcLabel, volumeCurrencyLabel, minAmountBtcLabel;
     private ComboBox<PaymentAccount> paymentAccountsComboBox;
     private ComboBox<TradeCurrency> currencyComboBox;
@@ -166,7 +166,7 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
     private ChangeListener<Boolean> amountFocusedListener, minAmountFocusedListener, volumeFocusedListener,
             buyerSecurityDepositFocusedListener, priceFocusedListener, placeOfferCompletedListener,
             priceAsPercentageFocusedListener, getShowWalletFundedNotificationListener,
-            tradeFeeInBtcToggleListener, tradeFeeInBsqToggleListener, tradeFeeVisibleListener;
+            tradeFeeInXmrToggleListener, tradeFeeInBsqToggleListener, tradeFeeVisibleListener;
     private ChangeListener<String> tradeCurrencyCodeListener, errorMessageListener,
             marketPriceMarginListener, volumeListener, buyerSecurityDepositInBTCListener;
     private ChangeListener<Number> marketPriceAvailableListener;
@@ -348,7 +348,7 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
     // called form parent as the view does not get notified when the tab is closed
     public void onClose() {
         // we use model.placeOfferCompleted to not react on close which was triggered by a successful placeOffer
-        if (model.getDataModel().getBalance() != null && model.placeOfferCompleted != null && model.getDataModel().getBalance().get().isPositive() && !model.placeOfferCompleted.get()) {
+        if (model.getDataModel().getBalance() != null && model.getDataModel().getBalance().get() != null && model.placeOfferCompleted != null && model.getDataModel().getBalance().get().isPositive() && !model.placeOfferCompleted.get()) {
             model.getDataModel().swapTradeToSavings();
             String key = "CreateOfferCancelAndFunded";
             if (preferences.showAgain(key)) {
@@ -392,8 +392,12 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
         Coin makerFee = model.getDataModel().getMakerFeeInBsq();
         String message = null;
         if (makerFee != null) {
-            message = Res.get("popup.warning.insufficientBsqFundsForFeePayment", "BSQ",
-                    bsqFormatter.formatCoinWithCode(makerFee.subtract(model.getDataModel().getBsqBalance())));
+        	Coin requiredBsqAmount = makerFee.subtract(model.getDataModel().getBsqBalance());
+        	double bsqToXmrRate = model.xmrMarketPrice.getPrice() / model.bsqMarketPrice.getPrice();
+        	XmrCoin requiredBsqAmountInXmr = XmrCoin.fromCoin2XmrCoin(requiredBsqAmount, String.valueOf(bsqToXmrRate));
+            message = Res.get("popup.warning.insufficientBsqFundsForXmrFeePayment", "BSQ",
+                    bsqFormatter.formatCoinWithCode(requiredBsqAmount),
+                    xmrFormatter.formatCoinWithCode(requiredBsqAmountInXmr));
 
         } else if (model.getDataModel().getBsqBalance().isZero())
             message = Res.get("popup.warning.noBsqFundsForFeePayment");
@@ -428,14 +432,19 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
             if (!DevEnv.isDevMode()) {
                 String key = "createOfferFundWalletInfo";
                 String tradeAmountText = model.isSellOffer() ?
-                        Res.get("createOffer.createOfferFundWalletInfo.tradeAmount", model.getTradeAmount()) : "";
+                        Res.get("createOffer.createXmrOfferFundWalletInfo.tradeAmount", model.getBsqTradeAmount(), model.getTradeAmount()) : "";
 
-                String message = Res.get("createOffer.createOfferFundWalletInfo.msg",
+                String message = Res.get("createOffer.createXmrOfferFundWalletInfo.msg",
                         model.getTotalToPayInfo(),
                         tradeAmountText,
                         model.getSecurityDepositInfo(),
                         model.getTradeFee(),
-                        model.getTxFee()
+                        model.getTxFee(),
+                        model.getBsqTotalToPayInfo(),
+                        model.getBsqSecurityDepositInfo(),
+                        model.getBsqTradeFee(),
+                        model.getBsqTxFee()
+                        
                 );
                 new Popup<>().headLine(Res.get("createOffer.createOfferFundWalletInfo.headline"))
                         .instruction(message)
@@ -590,10 +599,10 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
         XmrAddressTextField.amountAsCoinProperty().bind(model.getDataModel().getMissingCoin());
         buyerSecurityDepositInputTextField.textProperty().bindBidirectional(model.buyerSecurityDeposit);
         buyerSecurityDepositLabel.textProperty().bind(model.buyerSecurityDepositLabel);
-        tradeFeeInBtcLabel.textProperty().bind(model.tradeFeeInXmrWithFiat);
+        tradeFeeInXmrLabel.textProperty().bind(model.tradeFeeInXmrWithFiat);
         tradeFeeInBsqLabel.textProperty().bind(model.tradeFeeInBsqWithFiat);
         tradeFeeDescriptionLabel.textProperty().bind(model.tradeFeeDescription);
-        tradeFeeInBtcLabel.visibleProperty().bind(model.isTradeFeeVisible);
+        tradeFeeInXmrLabel.visibleProperty().bind(model.isTradeFeeVisible);
         tradeFeeInBsqLabel.visibleProperty().bind(model.isTradeFeeVisible);
         tradeFeeDescriptionLabel.visibleProperty().bind(model.isTradeFeeVisible);
 
@@ -641,10 +650,10 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
         XmrAddressTextField.amountAsCoinProperty().unbind();
         buyerSecurityDepositInputTextField.textProperty().unbindBidirectional(model.buyerSecurityDeposit);
         buyerSecurityDepositLabel.textProperty().unbind();
-        tradeFeeInBtcLabel.textProperty().unbind();
+        tradeFeeInXmrLabel.textProperty().unbind();
         tradeFeeInBsqLabel.textProperty().unbind();
         tradeFeeDescriptionLabel.textProperty().unbind();
-        tradeFeeInBtcLabel.visibleProperty().unbind();
+        tradeFeeInXmrLabel.visibleProperty().unbind();
         tradeFeeInBsqLabel.visibleProperty().unbind();
         tradeFeeDescriptionLabel.visibleProperty().unbind();
 
@@ -825,7 +834,7 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
         };
 
 
-        tradeFeeInBtcToggleListener = (observable, oldValue, newValue) -> {
+        tradeFeeInXmrToggleListener = (observable, oldValue, newValue) -> {
             if (newValue && tradeFeeInBsqToggle.isSelected())
                 tradeFeeInBsqToggle.setSelected(false);
 
@@ -855,8 +864,16 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
     private void setIsCurrencyForMakerFeeBtc(boolean isCurrencyForMakerFeeBtc) {
         model.setIsCurrencyForMakerFeeBtc(isCurrencyForMakerFeeBtc);
         if (DevEnv.isDaoActivated()) {
-            tradeFeeInBtcLabel.setOpacity(isCurrencyForMakerFeeBtc ? 1 : 0.3);
+            tradeFeeInXmrLabel.setOpacity(isCurrencyForMakerFeeBtc ? 1 : 0.3);
             tradeFeeInBsqLabel.setOpacity(isCurrencyForMakerFeeBtc ? 0.3 : 1);
+        }
+    }
+
+    private void setIsCurrencyForMakerFeeXmr(boolean isCurrencyForMakerFeeXmr) {
+        model.setIsCurrencyForMakerFeeXmr(isCurrencyForMakerFeeXmr);
+        if (DevEnv.isDaoActivated()) {
+            tradeFeeInXmrLabel.setOpacity(isCurrencyForMakerFeeXmr ? 1 : 0.3);
+            tradeFeeInBsqLabel.setOpacity(isCurrencyForMakerFeeXmr ? 0.3 : 1);
         }
     }
 
@@ -888,7 +905,7 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
         model.isTradeFeeVisible.addListener(tradeFeeVisibleListener);
         model.buyerSecurityDepositInXMR.addListener(buyerSecurityDepositInBTCListener);
 
-        tradeFeeInXmrToggle.selectedProperty().addListener(tradeFeeInBtcToggleListener);
+        tradeFeeInXmrToggle.selectedProperty().addListener(tradeFeeInXmrToggleListener);
         tradeFeeInBsqToggle.selectedProperty().addListener(tradeFeeInBsqToggleListener);
 
         // focus out
@@ -920,7 +937,7 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
         model.volume.removeListener(volumeListener);
         model.isTradeFeeVisible.removeListener(tradeFeeVisibleListener);
         model.buyerSecurityDepositInXMR.removeListener(buyerSecurityDepositInBTCListener);
-        tradeFeeInXmrToggle.selectedProperty().removeListener(tradeFeeInBtcToggleListener);
+        tradeFeeInXmrToggle.selectedProperty().removeListener(tradeFeeInXmrToggleListener);
         tradeFeeInBsqToggle.selectedProperty().removeListener(tradeFeeInBsqToggleListener);
 
         // focus out
@@ -1102,8 +1119,12 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
             Coin makerFee = model.getDataModel().getMakerFeeInBsq();
             String missingBsq = null;
             if (makerFee != null) {
-                missingBsq = Res.get("popup.warning.insufficientBsqFundsForFeePayment", "BSQ",
-                        bsqFormatter.formatCoinWithCode(makerFee.subtract(model.getDataModel().getBsqBalance())));
+            	Coin requiredBsqAmount = makerFee.subtract(model.getDataModel().getBsqBalance());
+            	double bsqToXmrRate = model.xmrMarketPrice.getPrice() / model.bsqMarketPrice.getPrice();
+            	XmrCoin requiredBsqAmountInXmr = XmrCoin.fromCoin2XmrCoin(requiredBsqAmount, String.valueOf(bsqToXmrRate));
+                missingBsq = Res.get("popup.warning.insufficientBsqFundsForXmrFeePayment", "BSQ",
+                        bsqFormatter.formatCoinWithCode(requiredBsqAmount),
+                        xmrFormatter.formatCoinWithCode(requiredBsqAmountInXmr));
 
             } else if (model.getDataModel().getBsqBalance().isZero()) {
                 missingBsq = Res.get("popup.warning.noBsqFundsForFeePayment");
@@ -1111,11 +1132,11 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
 
             if (missingBsq != null) {
                 new Popup().warning(missingBsq)
-                        .actionButtonText(Res.get("feeOptionWindow.useBTC"))
-                        .onAction(() -> {
-                            tradeFeeInXmrToggle.setSelected(true);
-                            onShowPayFundsScreen();
-                        })
+//                        .actionButtonText(Res.get("feeOptionWindow.useBTC"))
+//                        .onAction(() -> {
+//                            tradeFeeInXmrToggle.setSelected(true);
+//                            onShowPayFundsScreen();
+//                        })
                         .show();
             } else {
                 onShowPayFundsScreen();
@@ -1190,11 +1211,13 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
         fundFromSavingsWalletButton.setDefaultButton(true);
         fundFromSavingsWalletButton.getStyleClass().add("action-button");
         fundFromSavingsWalletButton.setOnAction(e -> model.fundFromSavingsWallet());
+        fundFromSavingsWalletButton.setDisable(true);
         Label label = new AutoTooltipLabel(Res.get("shared.OR"));
         label.setPadding(new Insets(5, 0, 0, 0));
         Button fundFromExternalWalletButton = new AutoTooltipButton(Res.get("shared.fundFromExternalWalletButton"));
         fundFromExternalWalletButton.setDefaultButton(false);
         fundFromExternalWalletButton.setOnAction(e -> GUIUtil.showFeeInfoBeforeExecute(this::openWallet));
+        fundFromExternalWalletButton.setDisable(true);
         waitingForFundsSpinner = new BusyAnimation(false);
         waitingForFundsLabel = new AutoTooltipLabel();
         waitingForFundsLabel.setPadding(new Insets(5, 0, 0, 0));
@@ -1419,9 +1442,9 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
     }
 
     private VBox getTradeFeeFieldsBox() {
-        tradeFeeInBtcLabel = new Label();
-        tradeFeeInBtcLabel.setMouseTransparent(true);
-        tradeFeeInBtcLabel.setId("trade-fee-textfield");
+        tradeFeeInXmrLabel = new Label();
+        tradeFeeInXmrLabel.setMouseTransparent(true);
+        tradeFeeInXmrLabel.setId("trade-fee-textfield");
 
         tradeFeeInBsqLabel = new Label();
         tradeFeeInBsqLabel.setMouseTransparent(true);
@@ -1431,16 +1454,18 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
         vBox.setSpacing(6);
         vBox.setMaxWidth(300);
         vBox.setAlignment(DevEnv.isDaoActivated() ? Pos.CENTER_RIGHT : Pos.CENTER_LEFT);
-        vBox.getChildren().addAll(tradeFeeInBtcLabel, tradeFeeInBsqLabel);
+        vBox.getChildren().addAll(tradeFeeInXmrLabel, tradeFeeInBsqLabel);
 
         tradeFeeInXmrToggle = new AutoTooltipSlideToggleButton();
         tradeFeeInXmrToggle.setText(Trade.TradeBaseCurrency.XMR.name());
         tradeFeeInXmrToggle.setVisible(false);
+        tradeFeeInXmrToggle.setDisable(true);
         tradeFeeInXmrToggle.setPadding(new Insets(-8, 5, -10, 5));
 
         tradeFeeInBsqToggle = new AutoTooltipSlideToggleButton();
         tradeFeeInBsqToggle.setText("BSQ");
         tradeFeeInBsqToggle.setVisible(false);
+        tradeFeeInBsqToggle.setDisable(true);
         tradeFeeInBsqToggle.setPadding(new Insets(-9, 5, -9, 5));
 
         VBox tradeFeeToggleButtonBox = new VBox();

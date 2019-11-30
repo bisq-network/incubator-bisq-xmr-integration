@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,10 +16,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +33,8 @@ import bisq.common.app.DevEnv;
 import bisq.core.btc.listeners.AddressConfidenceListener;
 import bisq.core.btc.listeners.TxConfidenceListener;
 import bisq.core.locale.Res;
+import bisq.core.offer.Offer;
+import bisq.core.offer.OfferPayload;
 import bisq.core.user.Preferences;
 import bisq.core.xmr.XmrCoin;
 import bisq.core.xmr.jsonrpc.MoneroRpcConnection;
@@ -68,25 +73,29 @@ public class XmrWalletRpcWrapper {
 		HOST = preferences.getXmrUserHostDelegate();
 		PORT = Integer.parseInt(preferences.getXmrHostPortDelegate());
         //TODO(niyid) Use preferences to determine which wallet to load in XmrWalletRpcWrapper		
-		openWalletRpcInstance(null);
-		if(isXmrWalletRpcRunning()) {
-			//TODO(niyid) Uncomment later
-/**/			
-			CryptoNoteAddressValidator validator;
-			long[] validPrefixes = {};
-			if(DevEnv.isDevMode()) {
-            	validPrefixes = new long[]{24, 36, 53, 63};
-            	validator = new CryptoNoteAddressValidator(true, validPrefixes);
-			} else {
-            	validPrefixes = new long[]{18, 42};
-            	validator = new CryptoNoteAddressValidator(true, validPrefixes);
+		try {
+			openWalletRpcInstance(null);
+			if(isXmrWalletRpcRunning()) {
+				//TODO(niyid) Uncomment later
+	/**/			
+				CryptoNoteAddressValidator validator;
+				long[] validPrefixes = {};
+				if(DevEnv.isDevMode()) {
+	            	validPrefixes = new long[]{24, 36, 53, 63};
+	            	validator = new CryptoNoteAddressValidator(true, validPrefixes);
+				} else {
+	            	validPrefixes = new long[]{18, 42};
+	            	validator = new CryptoNoteAddressValidator(true, validPrefixes);
+				}
+				if(!validator.validate(primaryAddress).isValid()) {
+					log.debug("Wallet RPC Connection not valid (MAINNET/TESTNET mix-up); shutting down...");
+					walletRpc.closeWallet();
+					walletRpc = null;
+				}
+	/**/			
 			}
-			if(!validator.validate(primaryAddress).isValid()) {
-				log.debug("Wallet RPC Connection not valid (MAINNET/TESTNET mix-up); shutting down...");
-				walletRpc.close();
-				walletRpc = null;
-			}
-/**/			
+		} catch (Exception e) {
+			log.error("Connection to Monero Wallet using monero-wallet-rpc failed.");
 		}
     }
         
@@ -264,7 +273,7 @@ public class XmrWalletRpcWrapper {
 				checkNotNull(walletRpc, Res.get("mainView.networkWarning.localhostLost", "Monero"));
 				listener.playAnimation();
 					long time0 = System.currentTimeMillis();
-					Address address = walletRpc.createWallet(accountIndex, label);
+					Address address = walletRpc.createAccountAddress(accountIndex, label);
 					log.debug("relayTx -time: {}ms - txId: {}", (System.currentTimeMillis() - time0), address.getAddress());
 				listener.stopAnimation();
 			}
@@ -286,7 +295,7 @@ public class XmrWalletRpcWrapper {
                 socket.connect(new InetSocketAddress(InetAddresses.forString(HOST), PORT), 5000);
                 log.debug("Localhost Monero Wallet RPC detected.");
                 UserThread.execute(() -> {
-            		walletRpc = new MoneroWalletRpc(new MoneroRpcConnection("http://" + HOST + ":" + PORT, preferences.getXmrRpcUserDelegate(), preferences.getXmrRpcPwdDelegate()));
+            		initWalletRpc();
                 });
             } catch (Throwable e) {
             	log.debug("createWalletRpcInstance - {}", e.getMessage());
@@ -307,6 +316,7 @@ public class XmrWalletRpcWrapper {
     }
     
     public boolean isXmrWalletRpcRunning() {
+    	initWalletRpc();
     	return walletRpc != null;
     }
 	
@@ -333,6 +343,13 @@ public class XmrWalletRpcWrapper {
 			handler.popupErrorWindow(Res.get("shared.account.wallet.popup.error.startupFailed"));
 		}		
 	}
+	
+	private void initWalletRpc() {
+		if(walletRpc == null) {
+			walletRpc = new MoneroWalletRpc(new MoneroRpcConnection("http://" + HOST + ":" + PORT, preferences.getXmrRpcUserDelegate(), preferences.getXmrRpcPwdDelegate()));
+		}
+		checkNotNull(walletRpc, Res.get("mainView.networkWarning.localhostLost", "Monero"));
+	}
 
 	public MoneroWalletRpc getWalletRpc() {
     	return walletRpc;
@@ -340,7 +357,7 @@ public class XmrWalletRpcWrapper {
 	
 	public String getPrimaryAddress() {
 		if(primaryAddress == null) {
-			walletRpc = new MoneroWalletRpc(new MoneroRpcConnection("http://" + HOST + ":" + PORT, preferences.getXmrRpcUserDelegate(), preferences.getXmrRpcPwdDelegate()));
+			initWalletRpc();
 			primaryAddress = walletRpc.getPrimaryAddress();
 		}
 		return primaryAddress;
@@ -348,33 +365,6 @@ public class XmrWalletRpcWrapper {
 
 	public XmrCoin getBalanceForAddress(String address) {
 		return XmrCoin.valueOf(walletRpc.getBalance(address).longValueExact());
-	}
-
-	public Address getOrCreateAddressEntry(String offerId) {
-        Socket socket = null;
-        try {
-            socket = new Socket();
-            socket.connect(new InetSocketAddress(InetAddresses.forString(HOST), PORT), 5000);
-            log.info("Localhost Monero Wallet RPC detected.");
-            UserThread.execute(() -> {
-        		walletRpc = new MoneroWalletRpc(new MoneroRpcConnection("http://" + HOST + ":" + PORT, preferences.getXmrRpcUserDelegate(), preferences.getXmrRpcPwdDelegate()));
-            });
-        } catch (Throwable e) {
-        	log.error("createWalletRpcInstance - {}", e.getMessage());
-        	e.printStackTrace();
-        } finally {
-            if (socket != null) {
-                try {
-                    socket.close();
-                } catch (IOException ignore) {
-                }
-            }
-        }
-		return walletRpc != null ? walletRpc.createWallet(0, offerId) : null;
-	}
-
-	public Address getOrCreateAddressEntry() {
-		return getOrCreateAddressEntry("Bisq Offer " + System.currentTimeMillis());
 	}
 
 	public void addBalanceListener(XmrBalanceListener xmrBalanceListener) {
@@ -386,11 +376,68 @@ public class XmrWalletRpcWrapper {
 	}
 	
 	public XmrCoin getBalance() {
+		initWalletRpc();
 		return XmrCoin.valueOf(walletRpc.getBalance().longValueExact());
 	}
-
-	public void resetAddressEntriesForOpenOffer(String id) {
-		//TODO(niyid) To be implemented if at all
+	
+	//Step 1: Method called by taker and then maker
+	public void prepareOffer(Offer offer, boolean isMaker) {
+		initWalletRpc();
 		
+		String keyForBob = isMaker ? OfferPayload.MULTISIG_INFO_MAKER : OfferPayload.MULTISIG_INFO_TAKER;
+		String keyForAlice = isMaker ? OfferPayload.MULTISIG_INFO_TAKER : OfferPayload.MULTISIG_INFO_MAKER;
+		String walletPassword = generateCommonLangPassword();//TODO(niyid) This has to be stored somewhere safe
+		//TODO(niyid) Use offer to know which language to use for wallet seed
+		walletRpc.createWallet(offer.getId(), walletPassword, "English"); //TODO(niyid) Create 2/2 multisig wallet for taker - create_wallet
+		walletRpc.openWallet(offer.getId(), walletPassword);
+		String multisigInfoAlice = walletRpc.prepareMultisig();//TODO(niyid) Prepare multisig wallet - prepare_multisig
+		walletRpc.makeMultisig(new String[] {multisigInfoAlice}, 2, walletPassword);//TODO(niyid)
+		//TODO(niyid) Share multisig info (Bob <==> Alice) through offer. Secure?
+		//TODO(niyid) Alternatively and more secure, use the chat message service to share multisig-info.
+		offer.getExtraDataMap().put(keyForAlice, multisigInfoAlice);
+		String multisigInfoBob = offer.getExtraDataMap().get(keyForBob);//Poll till available?
+		walletRpc.importMultisigInfo(new String[] {multisigInfoBob});
+		walletRpc.finalizeMultisig(new String[] {multisigInfoBob, multisigInfoAlice}, walletPassword);
+	}
+	
+	//Step 2: Method called by maker
+	public void holdOfferAmount(Offer offer) {
+		//TODO(niyid) This is the transaction that transfers and holds the XMR amount in the multisig wallet (Combine with processOffer)?
+//		walletRpc.send(request);
+		//TODO(niyid) Maker create a tx to move the offer amount equivalent from the primary wallet address to the multisig wallet - transfer
+		//TODO(niyid) Maker signs tx - sign_multisig
+		//TODO(niyid) Maker submits tx - submit_multisig
+	}
+	
+	//Step 3 to 4: Method called by maker
+	public void completeTrade(Offer offer) {
+		//TODO(niyid) This is the transaction that transfers the offer held in the multisig wallet to the taker on maker indicating receipt...
+		//TODO(niyid) ...of trade (of what ever currency and through what ever medium) from taker.
+//		walletRpc.send(request);
+//		walletRpc.signMultisig(txDataHex);
+//		walletRpc.submitMultisig(txDataHex);
+		//TODO(niyid) Maker creates a tx to send the amount held in the multisig wallet to the taker - transfer
+		//TODO(niyid) Maker signs tx - sign_multisig
+		//TODO(niyid) Maker submits  tx - submit_multisig
+	}
+	
+	private String generateCommonLangPassword() {
+	    String upperCaseLetters = RandomStringUtils.random(2, 65, 90, true, true);
+	    String lowerCaseLetters = RandomStringUtils.random(2, 97, 122, true, true, null, new SecureRandom());
+	    String numbers = RandomStringUtils.randomNumeric(2);
+	    String specialChar = RandomStringUtils.random(2, 33, 47, false, false);
+	    String totalChars = RandomStringUtils.randomAlphanumeric(2);
+	    String combinedChars = upperCaseLetters.concat(lowerCaseLetters)
+	      .concat(numbers)
+	      .concat(specialChar)
+	      .concat(totalChars);
+	    List<Character> pwdChars = combinedChars.chars()
+	      .mapToObj(c -> (char) c)
+	      .collect(Collectors.toList());
+	    Collections.shuffle(pwdChars);
+	    String password = pwdChars.stream()
+	      .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
+	      .toString();
+	    return password;
 	}
 }

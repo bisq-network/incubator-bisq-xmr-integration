@@ -46,6 +46,8 @@ import org.bitcoinj.utils.Fiat;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import java.time.Instant;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -88,6 +90,20 @@ public class XmrOfferUtil {
     @Nullable
     public static XmrCoin getMakerFee(XmrWalletRpcWrapper xmrWalletRpcWrapper, Preferences preferences, XmrCoin amount, String price) {
         boolean isCurrencyForMakerFeeXmr = isCurrencyForMakerFeeXmr(preferences, xmrWalletRpcWrapper, amount, price);
+        return getXmrMakerFee(isCurrencyForMakerFeeXmr, amount, price);
+    }
+
+    /**
+     * Returns the makerFee as XmrCoin, this can be priced in XMR or BSQ.
+     *
+     * @param bsqWalletService
+     * @param preferences          preferences are used to see if the user indicated a preference for paying fees in BTC
+     * @param amount
+     * @return
+     */
+    @Nullable
+    public static XmrCoin getMakerFee(BsqWalletService bsqWalletService, Preferences preferences, XmrCoin amount, String price) {
+        boolean isCurrencyForMakerFeeXmr = isCurrencyForMakerFeeXmr(preferences, bsqWalletService, amount, price);
         return getXmrMakerFee(isCurrencyForMakerFeeXmr, amount, price);
     }
     
@@ -138,7 +154,7 @@ public class XmrOfferUtil {
     public static boolean isCurrencyForMakerFeeXmr(Preferences preferences,
                                                    BsqWalletService bsqWalletService,
                                                    XmrCoin amount, String price) {
-        boolean payFeeInXmr = preferences.isUseBisqXmrWallet();
+        boolean payFeeInXmr = preferences.isPayFeeInXmr();
         boolean bsqForFeeAvailable = isBsqForMakerFeeAvailable(bsqWalletService, amount, price);
         return payFeeInXmr || !bsqForFeeAvailable;
     }
@@ -155,7 +171,7 @@ public class XmrOfferUtil {
     public static boolean isCurrencyForMakerFeeXmr(Preferences preferences,
                                                    XmrWalletRpcWrapper xmrWalletRpcWrapper,
                                                    XmrCoin amount, String price) {
-        boolean payFeeInXmr = preferences.isUseBisqXmrWallet();
+        boolean payFeeInXmr = preferences.isPayFeeInXmr();
         boolean bsqForFeeAvailable = isBsqForMakerFeeAvailable(xmrWalletRpcWrapper, amount, price);
         return payFeeInXmr || !bsqForFeeAvailable;
     }
@@ -217,7 +233,7 @@ public class XmrOfferUtil {
     public static boolean isCurrencyForTakerFeeXmr(Preferences preferences,
                                                    BsqWalletService bsqWalletService,
                                                    XmrCoin amount, String price) {
-        boolean payFeeInXmr = preferences.isUseBisqXmrWallet();
+        boolean payFeeInXmr = preferences.isPayFeeInXmr();
         boolean bsqForFeeAvailable = isBsqForTakerFeeAvailable(bsqWalletService, XmrCoin.fromXmrCoin2Coin(amount, "BSQ", String.valueOf(price)), price);
         return payFeeInXmr || !bsqForFeeAvailable;
     }
@@ -292,7 +308,7 @@ public class XmrOfferUtil {
     @VisibleForTesting
     static XmrCoin getAdjustedAmount(XmrCoin amount, Price price, long maxTradeLimit, int factor) {
         checkArgument(
-                amount.getValue() >= 10_000,
+                amount.getValue() >= 100_000_000,
                 "amount needs to be above minimum of 10k satoshi"
         );
         checkArgument(
@@ -305,12 +321,12 @@ public class XmrOfferUtil {
         if (smallestUnitForVolume.getValue() <= 0)
             return XmrCoin.ZERO;
 
-        XmrCoin smallestUnitForAmount = XmrCoin.fromCoin2XmrCoin(price.getAmountByVolume(smallestUnitForVolume), String.valueOf(price.getValue()));
+        XmrCoin smallestUnitForAmount = XmrCoin.fromCoinValue(price.getAmountByVolume(smallestUnitForVolume).value);
         long minTradeAmount = XmrRestrictions.getMinTradeAmount().value;
 
         // We use 10 000 satoshi as min allowed amount
         checkArgument(
-                minTradeAmount >= 10_000,
+                minTradeAmount >= 100_000_000,
                 "MinTradeAmount must be at least 10k satoshi"
         );
         smallestUnitForAmount = XmrCoin.valueOf(Math.max(minTradeAmount, smallestUnitForAmount.value));
@@ -319,13 +335,13 @@ public class XmrOfferUtil {
             amount = smallestUnitForAmount;
 
         // We get the adjusted volume from our amount
-        Volume volume = getAdjustedFiatVolume(price.getVolumeByAmount(XmrCoin.fromXmrCoin2Coin(amount, "BSQ", String.valueOf(price.getValue()))), factor);
+        Volume volume = getAdjustedFiatVolume(price.getVolumeByAmount(Coin.valueOf(XmrCoin.fromCoinValue(amount.value).value)), factor);
         if (volume.getValue() <= 0)
             return XmrCoin.ZERO;
 
         // From that adjusted volume we calculate back the amount. It might be a bit different as
         // the amount used as input before due rounding.
-        amount = XmrCoin.fromCoin2XmrCoin(price.getAmountByVolume(volume), String.valueOf(price.getValue()));
+        amount = XmrCoin.fromCoinValue(price.getAmountByVolume(volume).value);
 
         // For the amount we allow only 4 decimal places
         long adjustedAmount = Math.round((double) amount.value / 10000d) * 10000;
@@ -418,11 +434,14 @@ public class XmrOfferUtil {
 
         extraDataMap.put(OfferPayload.CAPABILITIES, Capabilities.app.toStringList());
 
-        
+        //TODO(niyid) Check if the MarketPrice values for XMR and BSQ are accurate
         MarketPrice xmrMarketPrice = priceFeedService.getMarketPrice("XMR");
-        extraDataMap.put(OfferPayload.XMR_TO_BTC_RATE, String.valueOf(xmrMarketPrice.getPrice()));
+        extraDataMap.put(OfferPayload.XMR_TO_BTC_RATE, String.valueOf((1.0 / xmrMarketPrice.getPrice())));
+        log.info("Using XMR Market Price of: Currency -> {}, Price -> {}, Date -> {}, External -> {}", xmrMarketPrice.getCurrencyCode(), (1.0 / xmrMarketPrice.getPrice()), Date.from(Instant.ofEpochSecond(xmrMarketPrice.getTimestampSec())), xmrMarketPrice.isExternallyProvidedPrice());
+
         MarketPrice bsqMarketPrice = priceFeedService.getMarketPrice("BSQ");
         extraDataMap.put(OfferPayload.XMR_TO_BSQ_RATE, String.valueOf(bsqMarketPrice.getPrice() / xmrMarketPrice.getPrice()));
+        log.info("Using BSQ Market Price of: Currency -> {}, Price -> {}, Date -> {}, External -> {}, BSQ/XMR Rate -> {}", bsqMarketPrice.getCurrencyCode(), (1.0 / bsqMarketPrice.getPrice()), Date.from(Instant.ofEpochSecond(bsqMarketPrice.getTimestampSec())), bsqMarketPrice.isExternallyProvidedPrice(), (bsqMarketPrice.getPrice() / xmrMarketPrice.getPrice()));
 
         return extraDataMap.isEmpty() ? null : extraDataMap;
     }

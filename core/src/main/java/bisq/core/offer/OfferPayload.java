@@ -88,6 +88,10 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
 
     public static final String XMR_TO_BSQ_RATE = "xmrToBsqRate";
 
+    public static final String MULTISIG_INFO_MAKER = "makerMultisig";
+
+    public static final String MULTISIG_INFO_TAKER = "takerMultisig";
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Instance fields
     ///////////////////////////////////////////////////////////////////////////////////////////

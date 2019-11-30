@@ -176,7 +176,7 @@ class XmrOfferBookViewModel extends ActivatableViewModel {
 
             //TODO(niyid) It should only match offers whose counterCurrencyCode == "XMR" when the baseCurrencyCode is an altcoin
             //TODO(niyid) or baseCurrencyCode == "XMR" when counterCurrencyCode is a fiat
-            final boolean containsRangeAmountAndTradedCurrencyMatch = filteredItems.stream().anyMatch(o -> o.getOffer().isRange() && o.getOffer().getOfferPayload().getCounterCurrencyCode() == "XMR");
+            final boolean containsRangeAmountAndTradedCurrencyMatch = filteredItems.stream().anyMatch(o -> o.getOffer().isRange());
 
             if (highestAmountOffer.isPresent()) {
                 final XmrOfferBookListItem item = highestAmountOffer.get();
@@ -544,7 +544,8 @@ class XmrOfferBookViewModel extends ActivatableViewModel {
             boolean paymentMethodResult = showAllPaymentMethods ||
                     offer.getPaymentMethod().equals(selectedPaymentMethod);
             boolean notMyOfferOrShowMyOffersActivated = !isMyOffer(offerBookListItem.getOffer()) || preferences.isShowOwnOffersInOfferBook();
-            return directionResult && currencyResult && paymentMethodResult && notMyOfferOrShowMyOffersActivated;
+            boolean isXmrBasedOffer = offer.getExtraDataMap().containsKey(OfferPayload.XMR_TO_BTC_RATE);
+            return directionResult && currencyResult && paymentMethodResult && notMyOfferOrShowMyOffersActivated && isXmrBasedOffer;
         });
     }
 

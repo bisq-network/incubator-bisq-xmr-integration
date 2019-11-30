@@ -106,7 +106,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     private ComboBox<String> xmrHostComboBox;
 
     private ToggleButton showOwnOffersInOfferBook, useAnimations, useDarkMode, sortMarketCurrenciesNumerically,
-    		avoidStandbyMode, useCustomFee, useBisqXmrWallet;
+    		avoidStandbyMode, useCustomFee, useBisqXmrWallet, payFeeInXmr;
     private int gridRow = 0;
     private InputTextField transactionFeeInputTextField, ignoreTradersListInputTextField, ignoreDustThresholdInputTextField,
     /*referralIdInputTextField,*/
@@ -355,6 +355,9 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         useBisqXmrWallet = addSlideToggleButton(root, ++gridRow,
                 Res.get("setting.preferences.useBisqXmrWallet"));
         //TODO(niyid) Only show those below if useBisqXmrWallet toggled on
+        payFeeInXmr = addSlideToggleButton(root, ++gridRow,
+                Res.get("setting.preferences.payFeeInXmr"));
+        payFeeInXmr.setDisable(true);//TODO(niyid) Disable till further notice
         xmrHostComboBox = addComboBox(root, ++gridRow, Res.get("shared.account.wallet.host", "Monero"));
         xmrHostComboBox.setButtonCell(GUIUtil.getComboBoxButtonCell(Res.get("shared.account.wallet.host", "Monero"), xmrHostComboBox,
                 false));
@@ -870,10 +873,15 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         useBisqXmrWallet.setSelected(preferences.isUseBisqXmrWallet());
         useBisqXmrWallet.setOnAction(e -> {
         	preferences.setUseBisqXmrWallet(useBisqXmrWallet.isSelected());
+        	payFeeInXmr.setVisible(useBisqXmrWallet.isSelected());
         	xmrHostComboBox.setVisible(useBisqXmrWallet.isSelected());
         	xmrHostPortTextField.setVisible(useBisqXmrWallet.isSelected());
         	xmrRpcUserTextField.setVisible(useBisqXmrWallet.isSelected());
         	xmrRpcPwdTextField.setVisible(useBisqXmrWallet.isSelected());
+        });
+        payFeeInXmr.setSelected(preferences.isPayFeeInXmr());
+        payFeeInXmr.setOnAction(e -> {
+        	preferences.setPayFeeInXmr(payFeeInXmr.isSelected());
         });
         
         xmrHostPortTextField.textProperty().addListener(xmrHostPortListener);

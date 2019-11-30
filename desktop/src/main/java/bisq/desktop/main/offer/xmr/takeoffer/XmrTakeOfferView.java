@@ -39,8 +39,8 @@ import bisq.desktop.main.funds.withdrawal.WithdrawalView;
 import bisq.desktop.main.offer.OfferView;
 import bisq.desktop.main.overlays.notifications.Notification;
 import bisq.desktop.main.overlays.popups.Popup;
-import bisq.desktop.main.overlays.windows.OfferDetailsWindow;
 import bisq.desktop.main.overlays.windows.QRCodeWindow;
+import bisq.desktop.main.overlays.windows.XmrOfferDetailsWindow;
 import bisq.desktop.main.portfolio.PortfolioView;
 import bisq.desktop.main.portfolio.pendingtrades.PendingTradesView;
 import bisq.desktop.util.GUIUtil;
@@ -123,7 +123,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
     private final Navigation navigation;
     private final XmrBSFormatter formatter;
     private final BsqFormatter bsqFormatter;
-    private final OfferDetailsWindow offerDetailsWindow;
+    private final XmrOfferDetailsWindow offerDetailsWindow;
     private final Transitions transitions;
 
     private ScrollPane scrollPane;
@@ -178,7 +178,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
                           Navigation navigation,
                           XmrBSFormatter formatter,
                           BsqFormatter bsqFormatter,
-                          OfferDetailsWindow offerDetailsWindow,
+                          XmrOfferDetailsWindow offerDetailsWindow,
                           Transitions transitions) {
         super(model);
 
@@ -381,7 +381,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
         priceTextField.setText(model.getPrice());
         priceAsPercentageTextField.setText(model.marketPriceMargin);
         XmrAddressTextField.setPaymentLabel(model.getPaymentLabel());
-        XmrAddressTextField.setAddress(model.dataModel.getAddressEntry().getAddress());
+        XmrAddressTextField.setAddress(model.dataModel.getAddressEntry());
 
         if (CurrencyUtil.isFiatCurrency(offer.getCurrencyCode()))
             volumeInfoTextField.setContentForPrivacyPopOver(createPopoverLabel(Res.get("offerbook.info.roundedFiatVolume")));
@@ -430,7 +430,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
                                 offerDetailsWindow.hide();
                                 offerDetailsWindowDisplayed = false;
                             })
-                    ).show(model.getOffer(), XmrCoin.fromXmrCoin2Coin(model.dataModel.getAmount().get(), "BTC", model.getOffer().getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)), model.getOffer().getPrice());
+                    ).show(model.getOffer(), model.dataModel.getAmount().get(), model.getOffer().getPrice());
                     offerDetailsWindowDisplayed = true;
                 } else {
                     balanceSubscription.unsubscribe();
@@ -924,26 +924,31 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
     }
 
     private void showFeeOption() {
-        boolean isPreferredFeeCurrencyBtc = model.dataModel.isPreferredFeeCurrencyXmr();
+        boolean isPreferredFeeCurrencyXmr = model.dataModel.isPreferredFeeCurrencyXmr();
         boolean isBsqForFeeAvailable = model.dataModel.isBsqForFeeAvailable();
-        if (!isPreferredFeeCurrencyBtc && !isBsqForFeeAvailable) {
-            Coin takerFee = XmrCoin.fromXmrCoin2Coin(model.dataModel.getTakerFee(false), "BSQ", model.getOffer().getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE));
+        //Force BSQ fee option if isPreferredFeeCurrencyXmr is true
+        if (isPreferredFeeCurrencyXmr && !isBsqForFeeAvailable) {
+            Coin takerFee = XmrCoin.fromXmrCoin2Coin(model.dataModel.getTakerFee(false), "BSQ", model.getOffer().getExtraDataMap().get(OfferPayload.XMR_TO_BSQ_RATE));
             String missingBsq = null;
             if (takerFee != null) {
-                missingBsq = Res.get("popup.warning.insufficientBsqFundsForFeePayment", Trade.TradeBaseCurrency.XMR.name(),
-                        bsqFormatter.formatCoinWithCode(takerFee.subtract(model.dataModel.getBsqBalance())));
+            	Coin bsqAmount = takerFee.subtract(model.dataModel.getBsqBalance());
+            	XmrCoin bsqAmountInXmr = XmrCoin.fromCoin2XmrCoin(bsqAmount, model.getOffer().getExtraDataMap().get(OfferPayload.XMR_TO_BSQ_RATE));
+                missingBsq = Res.get("popup.warning.insufficientBsqFundsForXmrFeePayment", "BSQ",
+                        bsqFormatter.formatCoinWithCode(bsqAmount),
+                        formatter.formatCoinWithCode(bsqAmountInXmr));
 
             } else if (model.dataModel.getBsqBalance().isZero()) {
                 missingBsq = Res.get("popup.warning.noBsqFundsForFeePayment");
             }
 
+            //TODO(niyid) tradeFeeInBtcToggle should be disabled; only pay in BSQ
             if (missingBsq != null) {
                 new Popup().warning(missingBsq)
-                        .actionButtonText(Res.get("feeOptionWindow.useBTC"))
-                        .onAction(() -> {
-                            tradeFeeInBtcToggle.setSelected(true);
-                            onShowPayFundsScreen();
-                        })
+//                        .actionButtonText(Res.get("feeOptionWindow.useBTC"))
+//                        .onAction(() -> {
+//                            tradeFeeInBtcToggle.setSelected(true);
+//                            onShowPayFundsScreen();
+//                        })
                         .show();
             } else {
                 onShowPayFundsScreen();
@@ -1078,8 +1083,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
 
     @NotNull
     private String getMoneroURI() {
-    	//TODO(niyid) Return Monero URI
-        return "";
+    	return "https://testnet.xmrchain.com/search?value=" + model.getOffer().getOfferFeePaymentTxId();
     }
 
     private void addAmountPriceFields() {

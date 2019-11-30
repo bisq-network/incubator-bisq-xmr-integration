@@ -67,7 +67,6 @@ import bisq.common.app.DevEnv;
 import bisq.common.util.MathUtils;
 
 import bisq.core.xmr.XmrCoin;
-import bisq.core.xmr.jsonrpc.result.Address;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.utils.Fiat;
@@ -161,7 +160,7 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
     final ObjectProperty<InputValidator.ValidationResult> buyerSecurityDepositValidationResult = new SimpleObjectProperty<>();
 
     // Those are needed for the XmrAddressTextField
-    private final ObjectProperty<Address> address = new SimpleObjectProperty<>();
+    private final ObjectProperty<String> address = new SimpleObjectProperty<>();
 
     private ChangeListener<String> amountStringListener;
     private ChangeListener<String> minAmountStringListener;
@@ -187,6 +186,8 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
     final IntegerProperty marketPriceAvailableProperty = new SimpleIntegerProperty(-1);
     private ChangeListener<Number> currenciesUpdateListener;
     protected boolean syncMinAmountWithAmount = true;
+    protected MarketPrice xmrMarketPrice;
+    protected MarketPrice bsqMarketPrice;
     
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -226,8 +227,11 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
 
         paymentLabel = Res.get("createOffer.fundsBox.paymentLabel", dataModel.shortOfferId);
 
+        xmrMarketPrice = priceFeedService.getMarketPrice("XMR");
+        bsqMarketPrice = priceFeedService.getMarketPrice("BSQ");
+
         if (dataModel.getAddressEntry() != null) {
-            addressAsString = dataModel.getAddressEntry().getAddress();
+            addressAsString = dataModel.getAddressEntry();
             address.set(dataModel.getAddressEntry());
         }
         createListeners();
@@ -303,7 +307,7 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
     private void createListeners() {
         amountStringListener = (ov, oldValue, newValue) -> {
             if (!ignoreAmountStringListener) {
-                if (isBtcInputValid(newValue).isValid) {
+                if (isXmrInputValid(newValue).isValid) {
                     setAmountToModel();
                     dataModel.calculateVolume();
                     dataModel.calculateTotalToPay();
@@ -312,7 +316,7 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
             }
         };
         minAmountStringListener = (ov, oldValue, newValue) -> {
-            if (isBtcInputValid(newValue).isValid)
+            if (isXmrInputValid(newValue).isValid)
                 setMinAmountToModel();
             updateButtonDisableState();
         };
@@ -498,11 +502,11 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
 
     private void applyMakerFee() {
     	//TODO(niyid) Fee should be in XMR and not BTC here.
-        XmrCoin makerFeeAsCoin = dataModel.getMakerFee();
+        Coin makerFeeAsCoin = dataModel.getMakerFeeInBsq();
         if (makerFeeAsCoin != null) {
             isTradeFeeVisible.setValue(true);
 
-            tradeFee.set(getFormatterForMakerFee().formatCoin(makerFeeAsCoin));
+            tradeFee.set(getFormatterForMakerFee(makerFeeAsCoin).formatCoin(makerFeeAsCoin));
 
             XmrCoin makerFeeInXmr = dataModel.getMakerFeeInXmr();
             Optional<Volume> optionalXmrFeeInFiat = XmrOfferUtil.getFeeInUserFiatCurrency(makerFeeInXmr,
@@ -511,7 +515,7 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
             if (DevEnv.isDaoActivated()) {
                 tradeFeeInXmrWithFiat.set(xmrFeeWithFiatAmount);
             } else {
-                tradeFeeInXmrWithFiat.set(xmrFormatter.formatCoinWithCode(makerFeeAsCoin));
+                tradeFeeInXmrWithFiat.set(xmrFormatter.formatCoinWithCode(makerFeeInXmr));
             }
 
             Coin makerFeeInBsq = dataModel.getMakerFeeInBsq();
@@ -548,6 +552,9 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
         marketPrice = priceFeedService.getMarketPrice(dataModel.getTradeCurrencyCode().get());
         marketPriceAvailableProperty.set(marketPrice == null || !marketPrice.isExternallyProvidedPrice() ? 0 : 1);
         dataModel.setMarketPriceAvailable(marketPrice != null && marketPrice.isExternallyProvidedPrice());
+
+        xmrMarketPrice = priceFeedService.getMarketPrice("XMR");
+        bsqMarketPrice = priceFeedService.getMarketPrice("BSQ");
     }
 
     private void addListeners() {
@@ -608,9 +615,10 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
         boolean result = dataModel.initWithData(direction, tradeCurrency);
         //TODO(niyid) PaymentAccount for Monero should natively support XmrCoin
         if (dataModel.paymentAccount != null) {
-            xmrValidator.setMaxValue(dataModel.paymentAccount.getPaymentMethod().getXmrMaxTradeLimitAsCoin(dataModel.getTradeCurrencyCode().get()));        	
+            xmrValidator.setMaxValue(dataModel.paymentAccount.getPaymentMethod().getXmrMaxTradeLimitAsCoin(dataModel.getTradeCurrencyCode().get(), 1.0 / xmrMarketPrice.getPrice()));        	
         }
-        xmrValidator.setMaxTradeLimit(XmrCoin.valueOf(dataModel.getMaxTradeLimit()));
+      //TODO(niyid) For now convert maxTradeLimit from BTC to XMR
+        xmrValidator.setMaxTradeLimit(XmrCoin.valueOf(Math.round(dataModel.getMaxTradeLimit() * 1.0 / xmrMarketPrice.getPrice())).shiftRight(4));
         xmrValidator.setMinValue(XmrRestrictions.getMinTradeAmount());
 
         final boolean isBuy = dataModel.getDirection() == OfferPayload.Direction.BUY;
@@ -679,10 +687,10 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
     public void onPaymentAccountSelected(PaymentAccount paymentAccount) {
         dataModel.onPaymentAccountSelected(paymentAccount);
         if (amount.get() != null)
-            amountValidationResult.set(isBtcInputValid(amount.get()));
+            amountValidationResult.set(isXmrInputValid(amount.get()));
 
-        xmrValidator.setMaxValue(dataModel.paymentAccount.getPaymentMethod().getXmrMaxTradeLimitAsCoin(dataModel.getTradeCurrencyCode().get()));
-        xmrValidator.setMaxTradeLimit(XmrCoin.valueOf(dataModel.getMaxTradeLimit()));
+        xmrValidator.setMaxValue(dataModel.paymentAccount.getPaymentMethod().getXmrMaxTradeLimitAsCoin(dataModel.getTradeCurrencyCode().get(), 1.0 / xmrMarketPrice.getPrice()));
+        xmrValidator.setMaxTradeLimit(XmrCoin.valueOf(Math.round(dataModel.getMaxTradeLimit() * 10000 * 1.0 / xmrMarketPrice.getPrice())));
 
         securityDepositValidator.setPaymentAccount(paymentAccount);
     }
@@ -724,6 +732,11 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
         applyMakerFee();
     }
 
+    public void setIsCurrencyForMakerFeeXmr(boolean isCurrencyForMakerFeeXmr) {
+        dataModel.setPreferredCurrencyForMakerFeeXmr(isCurrencyForMakerFeeXmr);
+        applyMakerFee();
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Handle focus
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -731,7 +744,7 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
     // On focus out we do validation and apply the data to the model
     void onFocusOutAmountTextField(boolean oldValue, boolean newValue) {
         if (oldValue && !newValue) {
-            InputValidator.ValidationResult result = isBtcInputValid(amount.get());
+            InputValidator.ValidationResult result = isXmrInputValid(amount.get());
             amountValidationResult.set(result);
             if (result.isValid) {
                 setAmountToModel();
@@ -746,7 +759,7 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
                     amountValidationResult.set(result);
 
                 if (minAmount.get() != null)
-                    minAmountValidationResult.set(isBtcInputValid(minAmount.get()));
+                    minAmountValidationResult.set(isXmrInputValid(minAmount.get()));
             } else if (amount.get() != null && xmrValidator.getMaxTradeLimit() != null && xmrValidator.getMaxTradeLimit().value == OfferRestrictions.XMR_TOLERATED_SMALL_TRADE_AMOUNT.value) {
                 amount.set(xmrFormatter.formatCoin(xmrValidator.getMaxTradeLimit()));
                 new Popup<>().information(Res.get("popup.warning.tradeLimitDueAccountAgeRestriction.buyer",
@@ -765,7 +778,7 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
 
     public void onFocusOutMinAmountTextField(boolean oldValue, boolean newValue) {
         if (oldValue && !newValue) {
-            InputValidator.ValidationResult result = isBtcInputValid(minAmount.get());
+            InputValidator.ValidationResult result = isXmrInputValid(minAmount.get());
             minAmountValidationResult.set(result);
             if (result.isValid) {
                 XmrCoin minAmountAsCoin = dataModel.getMinAmount().get();
@@ -790,7 +803,7 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
                 } else {
                     minAmountValidationResult.set(result);
                     if (this.amount.get() != null)
-                        amountValidationResult.set(isBtcInputValid(this.amount.get()));
+                        amountValidationResult.set(isXmrInputValid(this.amount.get()));
                 }
             } else {
                 syncMinAmountWithAmount = true;
@@ -866,12 +879,12 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
                     minAmount.set(amount.getValue());
                 } else {
                     if (amount.get() != null)
-                        amountValidationResult.set(isBtcInputValid(amount.get()));
+                        amountValidationResult.set(isXmrInputValid(amount.get()));
 
                     // We only check minAmountValidationResult if amountValidationResult is valid, otherwise we would get
                     // triggered a close of the popup when the minAmountValidationResult is applied
                     if (amountValidationResult.getValue() != null && amountValidationResult.getValue().isValid && minAmount.get() != null)
-                        minAmountValidationResult.set(isBtcInputValid(minAmount.get()));
+                        minAmountValidationResult.set(isXmrInputValid(minAmount.get()));
                 }
             }
         }
@@ -958,6 +971,11 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
         return dataModel.getTradeCurrency();
     }
 
+    public String getBsqTradeAmount() {
+        double bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
+        return xmrFormatter.formatCoinWithCode(XmrCoin.fromXmrCoin2Coin(dataModel.getAmount().get(), "BSQ", String.valueOf(bsqToXmrRate)));
+    }
+
     public String getTradeAmount() {
         return xmrFormatter.formatCoinWithCode(dataModel.getAmount().get());
     }
@@ -976,8 +994,22 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
                 GUIUtil.getPercentageOfTradeAmount(dataModel.getSecurityDeposit(), dataModel.getAmount().get());
     }
 
+    public String getBsqSecurityDepositInfo() {
+    	double bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
+    	Coin bsqSecurityDeposit = XmrCoin.fromXmrCoin2Coin(dataModel.getSecurityDeposit(), "BSQ", String.valueOf(bsqToXmrRate));
+    	Coin bsqAmount = XmrCoin.fromXmrCoin2Coin(dataModel.getAmount().get(), "BSQ", String.valueOf(bsqToXmrRate)); 
+        return bsqFormatter.formatCoinWithCode(bsqSecurityDeposit) +
+                GUIUtil.getPercentageOfTradeAmount(bsqSecurityDeposit, bsqAmount);
+    }
+
     public String getSecurityDepositWithCode() {
         return xmrFormatter.formatCoinWithCode(dataModel.getSecurityDeposit());
+    }
+
+    public String getBsqSecurityDepositWithCode() {
+        double bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
+
+        return bsqFormatter.formatCoinWithCode(XmrCoin.fromXmrCoin2Coin(dataModel.getSecurityDeposit(), "BSQ", String.valueOf(bsqToXmrRate)));
     }
 
     public String getTradeFee() {
@@ -988,6 +1020,14 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
             return makerFee + GUIUtil.getPercentageOfTradeAmount(makerFeeAsCoin, dataModel.getAmount().get());
         else
             return makerFee + " (" + Res.get("shared.tradingFeeInBsqInfo", xmrFormatter.formatCoinWithCode(makerFeeAsCoin)) + ")";
+    }
+
+    public String getBsqTradeFee() {
+        double bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
+        final Coin makerFeeAsCoin = XmrCoin.fromXmrCoin2Coin(dataModel.getMakerFee(), "BSQ", String.valueOf(bsqToXmrRate));
+        final String makerFee = getFormatterForMakerFee().formatCoinWithCode(makerFeeAsCoin);
+            
+        return makerFee + " (" + Res.get("shared.tradingFeeInBsqInfo", bsqFormatter.formatCoinWithCode(makerFeeAsCoin)) + ")";
     }
 
     public String getMakerFeePercentage() {
@@ -1003,7 +1043,13 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
         if (dataModel.isCurrencyForMakerFeeXmr())
             return totalToPay;
         else
-            return totalToPay + " + " + bsqFormatter.formatCoinWithCode(dataModel.getMakerFee());
+            return totalToPay + " + " + xmrFormatter.formatCoinWithCode(dataModel.getMakerFee());
+    }
+
+    public String getBsqTotalToPayInfo() {
+        double bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
+    	String totalBsqToPay = bsqFormatter.formatCoinWithCode(XmrCoin.fromXmrCoin2Coin(dataModel.totalToPayAsCoinProperty().get(), "BSQ", String.valueOf(bsqToXmrRate)));
+        return totalToPay + " + " + bsqFormatter.formatCoinWithCode(XmrCoin.fromXmrCoin2Coin(dataModel.getMakerFee(), "BSQ", String.valueOf(bsqToXmrRate)));
     }
 
     public String getFundsStructure() {
@@ -1013,9 +1059,17 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
                     getSecurityDepositWithCode(), getMakerFeePercentage(), getTxFeePercentage());
         } else {
             fundsStructure = Res.get("createOffer.fundsBox.fundsStructure.BSQ",
-                    getSecurityDepositWithCode(), getTxFeePercentage(), bsqFormatter.formatCoinWithCode(dataModel.getMakerFee()));
+                    getSecurityDepositWithCode(), getTxFeePercentage(), xmrFormatter.formatCoinWithCode(dataModel.getMakerFee()));
         }
         return fundsStructure;
+    }
+
+    public String getBsqFundsStructure() {
+        String fundsStructure;
+            fundsStructure = Res.get("createOffer.fundsBox.fundsStructure.BSQ",
+                    getBsqSecurityDepositWithCode(), getBsqTxFeePercentage(), bsqFormatter.formatCoinWithCode(dataModel.getMakerFeeInBsq()));
+
+            return fundsStructure;
     }
 
     public String getTxFee() {
@@ -1025,9 +1079,25 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
 
     }
 
+    public String getBsqTxFee() {
+        double bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
+        Coin txFeeAsCoin = XmrCoin.fromXmrCoin2Coin(dataModel.getTxFee(), "BSQ", String.valueOf(bsqToXmrRate));
+        Coin bsqAmount = XmrCoin.fromXmrCoin2Coin(dataModel.getAmount().get(), "BSQ", String.valueOf(bsqToXmrRate)); 
+        return bsqFormatter.formatCoinWithCode(txFeeAsCoin) +
+                GUIUtil.getPercentageOfTradeAmount(txFeeAsCoin, bsqAmount);
+
+    }
+
     public String getTxFeePercentage() {
         XmrCoin txFeeAsCoin = dataModel.getTxFee();
         return GUIUtil.getPercentage(txFeeAsCoin, dataModel.getAmount().get());
+    }
+
+    public String getBsqTxFeePercentage() {
+        double bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
+        Coin txFeeAsCoin = XmrCoin.fromXmrCoin2Coin(dataModel.getTxFee(), "BSQ", String.valueOf(bsqToXmrRate));
+        Coin amountAsCoin = XmrCoin.fromXmrCoin2Coin(dataModel.getAmount().get(), "BSQ", String.valueOf(bsqToXmrRate));
+        return GUIUtil.getPercentage(txFeeAsCoin, amountAsCoin);
     }
 
     public PaymentAccount getPaymentAccount() {
@@ -1147,7 +1217,7 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
         }
     }
 
-    private InputValidator.ValidationResult isBtcInputValid(String input) {
+    private InputValidator.ValidationResult isXmrInputValid(String input) {
         return xmrValidator.validate(input);
     }
 
@@ -1193,8 +1263,8 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
 
     private void updateButtonDisableState() {
         log.debug("updateButtonDisableState");
-        boolean inputDataValid = isBtcInputValid(amount.get()).isValid &&
-                isBtcInputValid(minAmount.get()).isValid &&
+        boolean inputDataValid = isXmrInputValid(amount.get()).isValid &&
+                isXmrInputValid(minAmount.get()).isValid &&
                 isPriceInputValid(price.get()).isValid &&
                 securityDepositValidator.validate(buyerSecurityDeposit.get()).isValid &&
                 dataModel.getPrice().get() != null &&
@@ -1214,6 +1284,10 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
             timeoutTimer.stop();
             timeoutTimer = null;
         }
+    }
+
+    private CoinFormatter getFormatterForMakerFee(Object coin) {
+        return coin instanceof XmrCoin ? xmrFormatter : bsqFormatter;
     }
 
     private CoinFormatter getFormatterForMakerFee() {

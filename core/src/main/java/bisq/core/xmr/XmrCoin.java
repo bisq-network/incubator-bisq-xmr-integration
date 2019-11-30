@@ -2,11 +2,10 @@ package bisq.core.xmr;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Monetary;
-import org.bitcoinj.utils.MonetaryFormat;
 import com.google.common.math.LongMath;
 import com.google.common.primitives.Longs;
-import com.sun.javafx.tools.packager.Log;
 
+import bisq.core.util.XmrMonetaryFormat;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.Serializable;
@@ -262,7 +261,7 @@ public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializabl
         return this.value;
     }
 
-    private static final MonetaryFormat FRIENDLY_FORMAT = MonetaryFormat.BTC.minDecimals(2).repeatOptionalDecimals(1, 10).postfixCode();
+    private static final XmrMonetaryFormat FRIENDLY_FORMAT = XmrMonetaryFormat.XMR.minDecimals(2).repeatOptionalDecimals(1, 10).postfixCode();
 
     /**
      * Returns the value as a 0.12 type string. More digits after the decimal place will be used
@@ -272,7 +271,7 @@ public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializabl
         return FRIENDLY_FORMAT.format(this).toString();
     }
 
-    private static final MonetaryFormat PLAIN_FORMAT = MonetaryFormat.BTC.minDecimals(0).repeatOptionalDecimals(1, 12).noCode();
+    private static final XmrMonetaryFormat PLAIN_FORMAT = XmrMonetaryFormat.XMR.minDecimals(0).repeatOptionalDecimals(1, 12).noCode();
 
     /**
      * <p>
@@ -307,24 +306,56 @@ public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializabl
         return Longs.compare(this.value, other.value);
     }
     
-    //TODO(niyid) Use external web-service providing feed of cryptocurrency conversion rates (Google)?
+    /**
+     * 
+     * @param coin
+     * @param price
+     * @return
+     */
     public static XmrCoin fromCoin2XmrCoin(Coin coin, String price) {
     	double rate = 1;
+    	coin = coin != null ? coin : Coin.ZERO;
     	try {
         	rate = Double.parseDouble(price);
     	} catch (Exception e) {
     		log.error("Exception occurred: {}, {}", price, coin.getValue());
 		}
-    	return XmrCoin.valueOf(Math.round(coin.getValue() * rate));
+    	return XmrCoin.valueOf(Math.round((coin.getValue() * 10_000) * rate)); //Recalibrate by 12 - 8 = 4
     }
     
+    /**
+     * 
+     * @param coin
+     * @param currencyCode For now, this is just a label that describes the relationship between the coin and the price
+     * @param price
+     * @return
+     */
     public static Coin fromXmrCoin2Coin(XmrCoin coin, String currencyCode, String price) {
     	double rate = 1;
+    	coin = coin != null ? coin : XmrCoin.ZERO;
     	try {
         	rate = Double.parseDouble(price);
     	} catch (Exception e) {
     		e.printStackTrace();
 		}
-    	return Coin.valueOf(Math.round(coin.getValue() / rate));
+    	return Coin.valueOf(Math.round(coin.getValue() / (10_000 * rate))); //Recalibrate by 12 - 8 = 4
+    }
+    
+    /**
+     * 
+     * @param coinAsLong
+     * @return
+     */
+    public static XmrCoin fromCoinValue(long coinAsLong) {
+    	return XmrCoin.valueOf(coinAsLong * 10_000); //Coin has smallest unit exp=8; XmrCoin has smallest unit exp=12. Recalibrate by 12 - 8 = 4
+    }
+    
+    /**
+     * 
+     * @param xmrCoinAsLong
+     * @return
+     */
+    public static Coin fromXmrCoinValue(long xmrCoinAsLong) {
+    	return Coin.valueOf(Math.round(xmrCoinAsLong / 10_000)); //Coin has smallest unit exp=8; XmrCoin has smallest unit exp=12. Recalibrate by 12 - 8 = 4
     }
 }

@@ -18,12 +18,14 @@
 package bisq.desktop.main.offer.xmr;
 
 import bisq.desktop.Navigation;
+import bisq.desktop.main.overlays.popups.Popup;
 import bisq.desktop.util.DisplayUtils;
 import bisq.desktop.util.GUIUtil;
 
 import bisq.core.account.witness.AccountAgeWitnessService;
 import bisq.core.btc.TxFeeEstimationService;
 import bisq.core.btc.listeners.BsqBalanceListener;
+import bisq.core.btc.model.AddressEntry;
 import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.btc.wallet.BtcWalletService;
 import bisq.core.xmr.wallet.XmrRestrictions;
@@ -52,6 +54,7 @@ import bisq.core.user.Preferences;
 import bisq.core.user.User;
 import bisq.core.util.XmrBSFormatter;
 import bisq.core.xmr.wallet.XmrWalletRpcWrapper;
+import bisq.core.xmr.wallet.listeners.WalletUiListener;
 import bisq.core.util.XmrCoinUtil;
 
 import bisq.network.p2p.P2PService;
@@ -91,7 +94,9 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.SetChangeListener;
 
+import java.time.Instant;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -152,9 +157,6 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
     private boolean marketPriceAvailable;
     private int feeTxSize = TxFeeEstimationService.TYPICAL_TX_WITH_1_INPUT_SIZE;
     protected boolean allowAmountUpdate = true;
-    private MarketPrice xmrMarketPrice;
-
-
 
     //TODO(niyid) Replace BtcWalletService functions with XmrWalletRpcWrapper functions; then completely remove BtcWalletService
     
@@ -180,7 +182,7 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
                                  XmrBSFormatter xmrFormatter,
                                  XmrMakerFeeProvider makerFeeProvider,
                                  Navigation navigation) {
-        super(xmrWalletWrapper);
+        super(bsqWalletService, xmrWalletWrapper, priceFeedService);
 
         this.openOfferManager = openOfferManager;
         this.btcWalletService = btcWalletService;
@@ -204,16 +206,16 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
                 UUID.randomUUID().toString() + "-" +
                 Version.VERSION.replace(".", "");
         shortOfferId = Utilities.getShortId(offerId);
-        addressEntry = xmrWalletWrapper.getOrCreateAddressEntry(offerId);
 
         useMarketBasedPrice.set(preferences.isUsePercentageBasedPrice());
         buyerSecurityDeposit.set(preferences.getBuyerSecurityDepositAsPercent(null));
         sellerSecurityDeposit.set(XmrRestrictions.getSellerSecurityDepositAsPercent());
         
-        xmrMarketPrice = priceFeedService.getMarketPrice("XMR");
-
-        //TODO(niyid) This should be listening in on Monero wallet balance through monero-wallet-rpc
-        xmrBalanceListener = new XmrBalanceListener(getAddressEntry()) {
+        log.info("Using XMR Market Price of: Currency -> {}, Price -> {}, Date -> {}, External -> {}", xmrMarketPrice.getCurrencyCode(), (1.0 / xmrMarketPrice.getPrice()), Date.from(Instant.ofEpochSecond(xmrMarketPrice.getTimestampSec())), xmrMarketPrice.isExternallyProvidedPrice());
+        log.info("Using BSQ Market Price of: Currency -> {}, Price -> {}, Date -> {}, External -> {}", bsqMarketPrice.getCurrencyCode(), (1.0 / bsqMarketPrice.getPrice()), Date.from(Instant.ofEpochSecond(bsqMarketPrice.getTimestampSec())), bsqMarketPrice.isExternallyProvidedPrice());
+        bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
+        log.info("XMR => BSQ is {}", bsqToXmrRate);
+        xmrBalanceListener = new XmrBalanceListener() {
             @Override
             public void onBalanceChanged(XmrCoin balance, MoneroTx tx) {
                 updateBalance();
@@ -284,27 +286,17 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
 
         fillPaymentAccounts();
 
-        //TODO(niyid) Generate a PaymentAccount instance on the fly using the wallets exposed by the localhost monero-wallet-rpc instance.
-        CryptoCurrencyAccount account;
+        PaymentAccount account;
 
-//        PaymentAccount lastSelectedPaymentAccount = getPreselectedPaymentAccount();
-//        if (lastSelectedPaymentAccount != null &&
-//                lastSelectedPaymentAccount.getTradeCurrencies().contains(tradeCurrency) &&
-//                user.getPaymentAccounts() != null &&
-//                user.getPaymentAccounts().stream().anyMatch(paymentAccount -> paymentAccount.getId().equals(lastSelectedPaymentAccount.getId()))) {
-//            account = lastSelectedPaymentAccount;
-//        } else {
-//            account = user.findFirstPaymentAccountWithCurrency(tradeCurrency);
-//        }
-        
-        //TODO(niyid) Just using Primary Monero Wallet for now
-        account = new CryptoCurrencyAccount();
-        account.init();
-        account.setId(xmrWalletWrapper.getPrimaryAddress());
-        account.setAccountName("Monero Wallet RPC Account");
-        account.setSingleTradeCurrency(new CryptoCurrency("XMR", "Monero"));
-        account.setAddress(xmrWalletWrapper.getPrimaryAddress());
-//        user.setCurrentPaymentAccount(account);
+        PaymentAccount lastSelectedPaymentAccount = getPreselectedPaymentAccount();
+        if (lastSelectedPaymentAccount != null &&
+                lastSelectedPaymentAccount.getTradeCurrencies().contains(tradeCurrency) &&
+                user.getPaymentAccounts() != null &&
+                user.getPaymentAccounts().stream().anyMatch(paymentAccount -> paymentAccount.getId().equals(lastSelectedPaymentAccount.getId()))) {
+            account = lastSelectedPaymentAccount;
+        } else {
+            account = user.findFirstPaymentAccountWithCurrency(tradeCurrency);
+        }
 
         if (account != null) {
             this.paymentAccount = account;
@@ -383,9 +375,6 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
         String hashOfChallenge = null;
 
         XmrCoin makerFeeAsCoin = getMakerFee();
-        
-        //TODO(niyid) Shouldn't be here. Only create wallet on save offer
-        createMultisigWallet(null);
 
         Map<String, String> extraDataMap = XmrOfferUtil.getExtraDataMap(accountAgeWitnessService,
                 referralIdService,
@@ -424,11 +413,11 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
                 acceptedBanks,
                 Version.VERSION,
                 btcWalletService.getLastBlockSeenHeight(),
-                txFeeFromXmrFeeService.value,
-                makerFeeAsCoin.value,
-                isCurrencyForMakerFeeXmr(),
-                getBuyerSecurityDepositAsCoin().value,
-                getSellerSecurityDepositAsCoin().value,
+                XmrCoin.fromXmrCoin2Coin(txFeeFromXmrFeeService, "BSQ", String.valueOf(bsqToXmrRate)).value,
+                XmrCoin.fromXmrCoin2Coin(makerFeeAsCoin, "BSQ", String.valueOf(bsqToXmrRate)).value,
+                false,//isCurrencyForMakerFeeBtc=false This means fee Coin values are in BSQ and not BTC
+                XmrCoin.fromXmrCoin2Coin(getBuyerSecurityDepositAsCoin(), "BSQ", String.valueOf(bsqToXmrRate)).value,
+                XmrCoin.fromXmrCoin2Coin(getSellerSecurityDepositAsCoin(), "BSQ", String.valueOf(bsqToXmrRate)).value,
                 maxTradeLimit,
                 maxTradePeriod,
                 useAutoClose,
@@ -450,8 +439,8 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
         if (!isBuyOffer())
             reservedFundsForOffer = reservedFundsForOffer.add(amount.get());
 
-        Tuple2<Coin, Integer> estimatedFeeAndTxSize = txFeeEstimationService.getEstimatedFeeAndTxSizeForMaker(XmrCoin.fromXmrCoin2Coin(reservedFundsForOffer, "BTC", String.valueOf(xmrMarketPrice.getPrice())),
-                XmrCoin.fromXmrCoin2Coin(getMakerFee(), "BTC", String.valueOf(xmrMarketPrice.getPrice())));
+        Tuple2<Coin, Integer> estimatedFeeAndTxSize = txFeeEstimationService.getEstimatedFeeAndTxSizeForMaker(XmrCoin.fromXmrCoin2Coin(reservedFundsForOffer, "BSQ", String.valueOf(bsqToXmrRate)),
+                XmrCoin.fromXmrCoin2Coin(getMakerFee(), "BSQ", String.valueOf(bsqToXmrRate)));
         txFeeFromXmrFeeService = XmrCoin.fromCoin2XmrCoin(estimatedFeeAndTxSize.first, String.valueOf(xmrMarketPrice.getPrice()));
         feeTxSize = estimatedFeeAndTxSize.second;
     }
@@ -463,6 +452,9 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
         if (!isBuyOffer())
             reservedFundsForOffer = reservedFundsForOffer.add(amount.get());
 
+        //TODO(niyid) Here the reserved funds for offer could be in BSQ from the BSQ wallet but reserved funds are actually in BTC
+        //TODO(niyid) useSavingsWallet should be true
+        //TODO(niyid) pass XMR-to-BTC conversion rate
         openOfferManager.placeOffer(offer,
                 XmrCoin.fromXmrCoin2Coin(reservedFundsForOffer, "BTC", String.valueOf(xmrMarketPrice.getPrice())),
                 useSavingsWallet,
@@ -483,8 +475,9 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
 
             buyerSecurityDeposit.set(preferences.getBuyerSecurityDepositAsPercent(getPaymentAccount()));
 
-            if (amount.get() != null)
+            if (amount.get() != null) {
                 this.amount.set(XmrCoin.valueOf(Math.min(amount.get().value, getMaxTradeLimit())));
+            }
         }
     }
 
@@ -568,6 +561,9 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
         preferences.setPayFeeInBtc(preferredCurrencyForMakerFeeBtc);
     }
 
+    void setPreferredCurrencyForMakerFeeXmr(boolean preferredCurrencyForMakerFeeXmr) {
+        preferences.setPayFeeInXmr(preferredCurrencyForMakerFeeXmr);
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Getters
@@ -576,8 +572,9 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     boolean isMinAmountLessOrEqualAmount() {
         //noinspection SimplifiableIfStatement
-        if (minAmount.get() != null && amount.get() != null)
+        if (minAmount.get() != null && amount.get() != null) {
             return !minAmount.get().isGreaterThan(amount.get());
+        }
         return true;
     }
 
@@ -585,8 +582,9 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
         return direction;
     }
 
-    Address getAddressEntry() {
-        return addressEntry;
+    //TODO(niyid) Address for what?
+    String getAddressEntry() {
+        return bsqWalletService.getUnusedBsqAddressAsString();
     }
 
     protected TradeCurrency getTradeCurrency() {
@@ -611,7 +609,7 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
     }
 
     boolean isMakerFeeValid() {
-        return preferences.isUseBisqXmrWallet() || isBsqForFeeAvailable();
+        return preferences.isPayFeeInXmr() || isBsqForFeeAvailable();
     }
 
     long getMaxTradeLimit() {
@@ -670,14 +668,15 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
         }
     }
 
-    private Volume calculateVolumeForAmount(ObjectProperty<XmrCoin> minAmount) {
-        Volume volumeByAmount = price.get().getVolumeByAmount(XmrCoin.fromXmrCoin2Coin(minAmount.get(), "BTC", String.valueOf(xmrMarketPrice.getPrice())));
+    private Volume calculateVolumeForAmount(ObjectProperty<XmrCoin> xmrAmount) {
+        Volume volumeByAmount = price.get().getVolumeByAmount(Coin.parseCoin(xmrAmount.get().toPlainString()));
 
         // For HalCash we want multiple of 10 EUR
         if (isHalCashAccount())
             volumeByAmount = XmrOfferUtil.getAdjustedVolumeForHalCash(volumeByAmount);
         else if (CurrencyUtil.isFiatCurrency(tradeCurrencyCode.get()))
             volumeByAmount = XmrOfferUtil.getRoundedFiatVolume(volumeByAmount);
+        
         return volumeByAmount;
     }
 
@@ -688,7 +687,9 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
                 !price.get().isZero() &&
                 allowAmountUpdate) {
             try {
-                XmrCoin value = DisplayUtils.reduceTo4Decimals(XmrCoin.fromCoin2XmrCoin(price.get().getAmountByVolume(volume.get()), String.valueOf(xmrMarketPrice.getPrice())), xmrFormatter);
+            	//TODO(niyid) This was the problem
+//                XmrCoin value = DisplayUtils.reduceTo4Decimals(XmrCoin.fromCoin2XmrCoin(price.get().getAmountByVolume(volume.get()), String.valueOf(xmrMarketPrice.getPrice())), xmrFormatter);
+                XmrCoin value = DisplayUtils.reduceTo4Decimals(XmrCoin.fromCoinValue(price.get().getAmountByVolume(volume.get()).value), xmrFormatter);
                 if (isHalCashAccount())
                     value = XmrOfferUtil.getAdjustedAmountForHalCash(value, price.get(), getMaxTradeLimit());
                 else if (CurrencyUtil.isFiatCurrency(tradeCurrencyCode.get()))
@@ -823,13 +824,13 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
     private XmrCoin getBoundedBuyerSecurityDepositAsCoin(XmrCoin value) {
         // We need to ensure that for small amount values we don't get a too low BTC amount. We limit it with using the
         // MinBuyerSecurityDepositAsCoin from XmrRestrictions.
-        return XmrCoin.valueOf(Math.max(XmrRestrictions.getMinBuyerSecurityDepositAsCoin().value, value.value));
+        return XmrCoin.valueOf(Math.max(XmrRestrictions.getMinBuyerSecurityDepositAsCoin(1.0 / xmrMarketPrice.getPrice()).value, value.value));
     }
 
     private XmrCoin getBoundedSellerSecurityDepositAsCoin(XmrCoin value) {
         // We need to ensure that for small amount values we don't get a too low BTC amount. We limit it with using the
         // MinSellerSecurityDepositAsCoin from XmrRestrictions.
-        return XmrCoin.valueOf(Math.max(XmrRestrictions.getMinSellerSecurityDepositAsCoin().value, value.value));
+        return XmrCoin.valueOf(Math.max(XmrRestrictions.getMinSellerSecurityDepositAsCoin(1.0 / xmrMarketPrice.getPrice()).value, value.value));
     }
 
     ReadOnlyObjectProperty<XmrCoin> totalToPayAsCoinProperty() {
@@ -849,7 +850,7 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
     }
 
     public XmrCoin getMakerFee() {
-        return makerFeeProvider.getMakerFee(xmrWalletWrapper, preferences, amount.get(), String.valueOf(xmrMarketPrice.getPrice()));
+        return makerFeeProvider.getMakerFee(bsqWalletService, preferences, amount.get(), String.valueOf(xmrMarketPrice.getPrice()));
     }
 
     public XmrCoin getMakerFeeInXmr() {
@@ -857,21 +858,19 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
     }
 
     public Coin getMakerFeeInBsq() {
-        return OfferUtil.getMakerFee(false, XmrCoin.fromXmrCoin2Coin(amount.get(), "BTC", String.valueOf(xmrMarketPrice.getPrice())));
+        return OfferUtil.getMakerFee(false, XmrCoin.fromXmrCoin2Coin(amount.get(), "BSQ", String.valueOf(bsqToXmrRate)));
     }
 
     public boolean isCurrencyForMakerFeeXmr() {
-        return XmrOfferUtil.isCurrencyForMakerFeeXmr(preferences, xmrWalletWrapper, amount.get(), String.valueOf(xmrMarketPrice.getPrice()));
+        return XmrOfferUtil.isCurrencyForMakerFeeXmr(preferences, bsqWalletService, amount.get(), String.valueOf(xmrMarketPrice.getPrice()));
     }
 
     public boolean isPreferredFeeCurrencyXmr() {
-    	//TODO(niyid) Should switch value of "Fee in BTC" should be considered? 
-//        return preferences.isUseBisqXmrWallet() && !preferences.isPayFeeInBtc();
-        return preferences.isUseBisqXmrWallet();
+        return preferences.isUseBisqXmrWallet() && preferences.isPayFeeInXmr();
     }
 
     public boolean isBsqForFeeAvailable() {
-        return XmrOfferUtil.isBsqForMakerFeeAvailable(xmrWalletWrapper, amount.get(), String.valueOf(xmrMarketPrice.getPrice()));
+        return XmrOfferUtil.isBsqForMakerFeeAvailable(bsqWalletService, amount.get(), String.valueOf(xmrMarketPrice.getPrice()));
     }
 
     public boolean isHalCashAccount() {

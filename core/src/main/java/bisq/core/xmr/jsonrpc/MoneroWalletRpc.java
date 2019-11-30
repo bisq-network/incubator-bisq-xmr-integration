@@ -28,9 +28,9 @@ public class MoneroWalletRpc {
 	}
 	
 	public String getPrimaryAddress() {
-		Map<String, Object> params = new HashMap<>();
-		params.put("account_index", 0);
-		Map<String, Object> response = rpcConnection.sendJsonRequest("get_address", params);
+//		Map<String, Object> params = new HashMap<>();
+//		params.put("account_index", 0);
+		Map<String, Object> response = rpcConnection.sendJsonRequest("get_address");
 		log.debug("response => {}", response);
 		
 		Address address = JsonUtils.deserialize(MoneroRpcConnection.DEFAULT_MAPPER, JsonUtils.serialize(MoneroRpcConnection.DEFAULT_MAPPER, response.get("result")), Address.class);
@@ -111,8 +111,7 @@ public class MoneroWalletRpc {
 		return txHash;
 	}
 	
-	@SuppressWarnings("unchecked")
-	public Address createWallet(int accountIndex, String label) {
+	public Address createAccountAddress(int accountIndex, String label) {
 		Map<String, Object> params = new HashMap<>();
 		params.put("account_index", accountIndex);
 		params.put("label", label);
@@ -197,14 +196,109 @@ public class MoneroWalletRpc {
 		
 	}
 	
+	@SuppressWarnings("unchecked")
+	public void createWallet(String walletFileName, String password, String language) {
+		Map<String, Object> params = new HashMap<>();
+		params.put("filename", walletFileName);
+		params.put("password", password);
+		params.put("language", language);
+		Map<String, Object> response = rpcConnection.sendJsonRequest("create_Wallet", params);
+		log.debug("response => {}", response);
+		
+		Map<String, Object> result = (Map<String, Object>) response.get("result");
+	}
+	
+	@SuppressWarnings("unchecked")
+	public String prepareMultisig() {
+		Map<String, Object> response = rpcConnection.sendJsonRequest("prepare_multisig");
+		log.debug("response => {}", response);
+		
+		Map<String, Object> result = (Map<String, Object>) response.get("result");
+		
+		return (String) result.get("multisig_info");
+	}
+	
+	@SuppressWarnings("unchecked")
+	public Integer importMultisigInfo(String[] multisigInfo) {
+		Map<String, Object> params = new HashMap<>();
+		params.put("info", multisigInfo);
+		Map<String, Object> response = rpcConnection.sendJsonRequest("import_multisig_info", params);
+		log.debug("response => {}", response);
+		
+		
+		Map<String, Object> result = (Map<String, Object>) response.get("result");
+		
+		return (Integer) result.get("info");
+	}
+	
+	@SuppressWarnings("unchecked")
+	public String exportMultisigInfo() {
+		Map<String, Object> response = rpcConnection.sendJsonRequest("prepare_multisig");
+		log.debug("response => {}", response);
+		
+		Map<String, Object> result = (Map<String, Object>) response.get("result");
+		
+		return (String) result.get("info");
+	}
+	
+	@SuppressWarnings("unchecked")
+	public String finalizeMultisig(String[] multisigInfo, String password) {
+		Map<String, Object> params = new HashMap<>();
+		params.put("info", multisigInfo);
+		params.put("password", password);
+		Map<String, Object> response = rpcConnection.sendJsonRequest("finalize_multisig", params);
+		log.debug("response => {}", response);
+		
+		Map<String, Object> result = (Map<String, Object>) response.get("result");
+		
+		return (String) result.get("address");
+	}
+	
+	public String makeMultisig(String[] multisigInfo, int threshold, String password) {
+		Map<String, Object> params = new HashMap<>();
+		params.put("multisig_info", multisigInfo);
+		params.put("threshold", threshold);
+		params.put("password", password);
+		Map<String, Object> response = rpcConnection.sendJsonRequest("make_multisig", params);
+		log.debug("response => {}", response);
+		
+		return JsonUtils.deserialize(MoneroRpcConnection.DEFAULT_MAPPER, JsonUtils.serialize(MoneroRpcConnection.DEFAULT_MAPPER, response.get("result")), String.class);
+	}
+	
+	public String signMultisig(String txDataHex) {
+		Map<String, Object> params = new HashMap<>();
+		params.put("tx_data_hex", txDataHex);
+		Map<String, Object> response = rpcConnection.sendJsonRequest("sign_multisig", params);
+		log.debug("response => {}", response);
+		
+		return JsonUtils.deserialize(MoneroRpcConnection.DEFAULT_MAPPER, JsonUtils.serialize(MoneroRpcConnection.DEFAULT_MAPPER, response.get("result")), String.class);
+	}
+	
+	public String submitMultisig(String txDataHex) {
+		Map<String, Object> params = new HashMap<>();
+		params.put("tx_data_hex", txDataHex);
+		Map<String, Object> response = rpcConnection.sendJsonRequest("finalize_multisig", params);
+		log.debug("response => {}", response);
+		
+		return JsonUtils.deserialize(MoneroRpcConnection.DEFAULT_MAPPER, JsonUtils.serialize(MoneroRpcConnection.DEFAULT_MAPPER, response.get("result")), String.class);
+	}
+
 	public static final String generatePaymentId() {
 		String f32 = UUID.randomUUID().toString().replace("-", "");
 		String l32 = UUID.randomUUID().toString().replace("-", "");
 		return f32.concat(l32);		
 	}
 	
-	public void close() {
+	public void closeWallet() {
 		Map<String, Object> response = rpcConnection.sendJsonRequest("close_wallet");
+		log.debug("response => {}", response);
+	}
+
+	public void openWallet(String walletFileName, String password) {
+		Map<String, Object> params = new HashMap<>();
+		params.put("filename", walletFileName);
+		params.put("password", password);
+		Map<String, Object> response = rpcConnection.sendJsonRequest("open_wallet", params);
 		log.debug("response => {}", response);
 	}
 

@@ -54,7 +54,8 @@ public enum Param {
     MIN_MAKER_FEE_BTC("0.00005", ParamType.BTC, 5, 5),         // 0.005% of trade amount
     MIN_TAKER_FEE_BTC("0.00005", ParamType.BTC, 5, 5),
 
-    // Fee in BTC for a 1 BTC trade. 0.001 is 0.1%. @5000 USD/BTC price 0.1% fee is 5 USD.
+    // Fee in XMR for a 1 XMR trade. 0.001 is 0.1%.
+    //TODO(niyid) For future purposes
     DEFAULT_MAKER_FEE_XMR("0.001", ParamType.XMR, 5, 5),
     DEFAULT_TAKER_FEE_XMR("0.003", ParamType.XMR, 5, 5),       // 0.3% of trade amount
     MIN_MAKER_FEE_XMR("0.00005", ParamType.XMR, 5, 5),         // 0.005% of trade amount

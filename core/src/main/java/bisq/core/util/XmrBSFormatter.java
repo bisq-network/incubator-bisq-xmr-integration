@@ -26,6 +26,7 @@ import bisq.core.monetary.Altcoin;
 import bisq.core.monetary.Price;
 import bisq.core.offer.OfferPayload;
 import bisq.core.trade.Trade;
+import bisq.core.util.XmrMonetaryFormat;
 import bisq.core.xmr.XmrCoin;
 import bisq.network.p2p.NodeAddress;
 import lombok.Getter;
@@ -39,7 +40,6 @@ import org.apache.commons.lang3.time.DateUtils;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.bitcoinj.core.Monetary;
 import org.bitcoinj.utils.Fiat;
-import org.bitcoinj.utils.MonetaryFormat;
 import org.jetbrains.annotations.NotNull;
 
 import java.math.BigDecimal;
@@ -63,17 +63,17 @@ public class XmrBSFormatter implements CoinFormatter {
     // Note: BtcFormat was intended to be used, but it lead to many problems (automatic format to mBit,
     // no way to remove grouping separator). It seems to be not optimal for user input formatting.
     @Getter
-    protected MonetaryFormat monetaryFormat;
+    protected XmrMonetaryFormat monetaryFormat;
 
     //  protected String currencyCode = CurrencyUtil.getDefaultFiatCurrencyAsCode();
 
-    public static final MonetaryFormat fiatPriceFormat = new MonetaryFormat().shift(0).minDecimals(4).repeatOptionalDecimals(0, 0);
-    protected static final MonetaryFormat altcoinFormat = new MonetaryFormat().shift(0).minDecimals(12).repeatOptionalDecimals(0, 0);
+    public static final XmrMonetaryFormat fiatPriceFormat = new XmrMonetaryFormat().shift(0).minDecimals(4).repeatOptionalDecimals(0, 0);
+    protected static final XmrMonetaryFormat altcoinFormat = new XmrMonetaryFormat().shift(0).minDecimals(8).repeatOptionalDecimals(0, 0);
     protected static final DecimalFormat decimalFormat = new DecimalFormat("#.#");
     
     @Inject
     public XmrBSFormatter() {
-        monetaryFormat = BisqEnvironment.getParameters().getMonetaryFormat();
+        monetaryFormat = new XmrMonetaryFormat();
     }
 
     public static String getRole(boolean isBuyerMakerAndSellerTaker, boolean isMaker, String currencyCode) {
@@ -149,7 +149,7 @@ public class XmrBSFormatter implements CoinFormatter {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public String formatCoin(XmrCoin coin) {
-        return formatCoin(coin, -1);
+    	return monetaryFormat.noCode().format(coin).toString();
     }
 
     @NotNull
@@ -157,7 +157,7 @@ public class XmrBSFormatter implements CoinFormatter {
         return formatCoin(coin, decimalPlaces, false, 0);
     }
 
-    public String formatCoin(long value, MonetaryFormat coinFormat) {
+    public String formatCoin(long value, XmrMonetaryFormat coinFormat) {
         return formatCoin(XmrCoin.valueOf(value), -1, false, 0, coinFormat);
     }
 
@@ -169,7 +169,7 @@ public class XmrBSFormatter implements CoinFormatter {
                                     int decimalPlaces,
                                     boolean decimalAligned,
                                     int maxNumberOfDigits,
-                                    MonetaryFormat coinFormat) {
+                                    XmrMonetaryFormat coinFormat) {
         String formattedCoin = "";
 
         if (coin != null) {
@@ -199,11 +199,11 @@ public class XmrBSFormatter implements CoinFormatter {
         return formatCoinWithCode(XmrCoin.valueOf(value), monetaryFormat);
     }
 
-    public static String formatCoinWithCode(long value, MonetaryFormat coinFormat) {
+    public static String formatCoinWithCode(long value, XmrMonetaryFormat coinFormat) {
         return formatCoinWithCode(XmrCoin.valueOf(value), coinFormat);
     }
 
-    public static String formatCoinWithCode(XmrCoin coin, MonetaryFormat coinFormat) {
+    public static String formatCoinWithCode(XmrCoin coin, XmrMonetaryFormat coinFormat) {
         if (coin != null) {
             try {
                 return coinFormat.postfixCode().format(coin).toString();
@@ -220,7 +220,7 @@ public class XmrBSFormatter implements CoinFormatter {
     // FIAT
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public static String formatFiat(Fiat fiat, MonetaryFormat format, boolean appendCurrencyCode) {
+    public static String formatFiat(Fiat fiat, XmrMonetaryFormat format, boolean appendCurrencyCode) {
         if (fiat != null) {
             try {
                 final String res = format.noCode().format(fiat).toString();
@@ -288,6 +288,7 @@ public class XmrBSFormatter implements CoinFormatter {
                 else
                     return res;
             } catch (Throwable t) {
+            	t.printStackTrace();
                 log.warn("Exception at formatAltcoin: " + t.toString());
                 return Res.get("shared.na") + " " + altcoin.getCurrencyCode();
             }
@@ -339,7 +340,7 @@ public class XmrBSFormatter implements CoinFormatter {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
 
-    public static String formatPrice(Price price, MonetaryFormat fiatPriceFormat, boolean appendCurrencyCode) {
+    public static String formatPrice(Price price, XmrMonetaryFormat fiatPriceFormat, boolean appendCurrencyCode) {
         if (price != null) {
             Monetary monetary = price.getMonetary();
             if (monetary instanceof Fiat)

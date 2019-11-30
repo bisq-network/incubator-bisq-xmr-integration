@@ -141,7 +141,7 @@ class XmrEditOfferDataModel extends XmrMutableOfferDataModel {
         // creation, so just use the default value as it doesn't matter anyway.
         double buyerSecurityDepositPercent = XmrCoinUtil.getAsPercentPerXmr(XmrCoin.fromCoin2XmrCoin(offer.getBuyerSecurityDeposit(), offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)), XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)));
         if (buyerSecurityDepositPercent > XmrRestrictions.getMaxBuyerSecurityDepositAsPercent(this.paymentAccount)
-                && offer.getBuyerSecurityDeposit().value == XmrRestrictions.getMinBuyerSecurityDepositAsCoin().value)
+                && offer.getBuyerSecurityDeposit().value == XmrRestrictions.getMinBuyerSecurityDepositAsCoin(1.0 / xmrMarketPrice.getPrice()).value)
             buyerSecurityDeposit.set(XmrRestrictions.getDefaultBuyerSecurityDepositAsPercent(this.paymentAccount));
         else
             buyerSecurityDeposit.set(buyerSecurityDepositPercent);

@@ -311,7 +311,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         return Coin.valueOf(tradeLimits.getRoundedRiskBasedTradeLimit(maxTradeLimit, riskFactor));
     }
 
-    public XmrCoin getXmrMaxTradeLimitAsCoin(String currencyCode) {
+    public XmrCoin getXmrMaxTradeLimitAsCoin(String currencyCode, double btctoXmrRate) {
         // Hack for SF as the smallest unit is 1 SF ;-( and price is about 3 BTC!
         if (currencyCode.equals("SF"))
             return XmrCoin.parseCoin("4");
@@ -327,11 +327,12 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         else if (maxTradeLimit == DEFAULT_TRADE_LIMIT_HIGH_RISK.value)
             riskFactor = 8;
         else
-            throw new RuntimeException("maxTradeLimit is not matching one of our default values. maxTradeLimit=" + Coin.valueOf(maxTradeLimit).toFriendlyString());
+            throw new RuntimeException("maxTradeLimit is not matching one of our default values. maxTradeLimit=" + XmrCoin.valueOf(maxTradeLimit).toFriendlyString());
 
         TradeLimits tradeLimits = TradeLimits.getINSTANCE();
         checkNotNull(tradeLimits, "tradeLimits must not be null");
-        long maxTradeLimit = tradeLimits.getMaxTradeLimit().value;
+        //TODO(niyid) For now convert limits from BTC to XMR
+        long maxTradeLimit = Math.round(tradeLimits.getMaxTradeLimit().value * 10000 * btctoXmrRate);
         return XmrCoin.valueOf(tradeLimits.getRoundedRiskBasedTradeLimit(maxTradeLimit, riskFactor));
     }
 

@@ -49,7 +49,7 @@ public class XmrRestrictions {
 
     public static XmrCoin getMinTradeAmount() {
         if (MIN_TRADE_AMOUNT == null)
-            MIN_TRADE_AMOUNT = XmrCoin.valueOf(10_000);//TODO(niyid) // 0,4 USD @ 4000 USD/BTC
+            MIN_TRADE_AMOUNT = XmrCoin.valueOf(100_000_000);//TODO(niyid) conversion required // 0,4 USD @ 4000 USD/BTC
         return MIN_TRADE_AMOUNT;
     }
 
@@ -76,9 +76,9 @@ public class XmrRestrictions {
 
     // We use MIN_BUYER_SECURITY_DEPOSIT as well as lower bound in case of small trade amounts.
     // So 0.0005 BTC is the min. buyer security deposit even with amount of 0.0001 BTC and 0.05% percentage value.
-    public static XmrCoin getMinBuyerSecurityDepositAsCoin() {
+    public static XmrCoin getMinBuyerSecurityDepositAsCoin(double btcToXmrRate) {
         if (MIN_BUYER_SECURITY_DEPOSIT == null)
-            MIN_BUYER_SECURITY_DEPOSIT = XmrCoin.parseCoin("0.001"); // 0.001 BTC about 4 USD @ 4000 USD/BTC
+            MIN_BUYER_SECURITY_DEPOSIT = XmrCoin.valueOf(Math.round(XmrCoin.parseCoin("0.001").value * btcToXmrRate));//TODO(niyid) conversion required // 0.001 BTC about 4 USD @ 4000 USD/BTC
         return MIN_BUYER_SECURITY_DEPOSIT;
     }
 
@@ -87,9 +87,9 @@ public class XmrRestrictions {
         return 0.05; // 5% of trade amount.
     }
 
-    public static XmrCoin getMinSellerSecurityDepositAsCoin() {
+    public static XmrCoin getMinSellerSecurityDepositAsCoin(double btcToXmrRate) {
         if (SELLER_SECURITY_DEPOSIT == null)
-            SELLER_SECURITY_DEPOSIT = XmrCoin.parseCoin("0.005"); // 0.005 BTC about 20 USD @ 4000 USD/BTC
+            SELLER_SECURITY_DEPOSIT = XmrCoin.valueOf(Math.round(XmrCoin.parseCoin("0.005").value * btcToXmrRate)); ////TODO(niyid) conversion required 0.005 BTC about 20 USD @ 4000 USD/BTC
         return SELLER_SECURITY_DEPOSIT;
     }
 }
