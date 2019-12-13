@@ -30,11 +30,18 @@ import com.google.common.net.InetAddresses;
 import bisq.asset.CryptoNoteAddressValidator;
 import bisq.common.UserThread;
 import bisq.common.app.DevEnv;
+import bisq.common.crypto.PubKeyRing;
 import bisq.core.btc.listeners.AddressConfidenceListener;
 import bisq.core.btc.listeners.TxConfidenceListener;
 import bisq.core.locale.Res;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferPayload;
+import bisq.core.support.SupportType;
+import bisq.core.support.dispute.Attachment;
+import bisq.core.support.messages.ChatMessage;
+import bisq.core.support.traderchat.TradeChatSession;
+import bisq.core.support.traderchat.TraderChatManager;
+import bisq.core.trade.Trade;
 import bisq.core.user.Preferences;
 import bisq.core.xmr.XmrCoin;
 import bisq.core.xmr.jsonrpc.MoneroRpcConnection;
@@ -45,7 +52,10 @@ import bisq.core.xmr.jsonrpc.result.MoneroTransfer;
 import bisq.core.xmr.jsonrpc.result.MoneroTx;
 import bisq.core.xmr.listeners.XmrBalanceListener;
 import bisq.core.xmr.wallet.listeners.WalletUiListener;
+import bisq.network.p2p.P2PService;
 import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.value.ChangeListener;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -60,20 +70,28 @@ public class XmrWalletRpcWrapper {
     protected final CopyOnWriteArraySet<AddressConfidenceListener> addressConfidenceListeners = new CopyOnWriteArraySet<>();
     protected final CopyOnWriteArraySet<TxConfidenceListener> txConfidenceListeners = new CopyOnWriteArraySet<>();
     protected final CopyOnWriteArraySet<XmrBalanceListener> balanceListeners = new CopyOnWriteArraySet<>();
-	
+    private TraderChatManager traderChatManager;
+    private PubKeyRing pubKeyRing;
+    private P2PService p2PService;
+    private ChangeListener<Boolean> arrivedPropertyListener;
+    private ChatMessage multisigInfoMessage;
+    private HashMap<String, HashMap<String, String>> tradeData = new HashMap<>();
 	//TODO(niyid) onChangeListener to dynamically create and set new walletRpc instance.
 	//TODO(niyid) onChangeListener fires only after any of host, port, user, password have changed
 	//TODO(niyid) Only allow testnet, stagenet connections in dev/test. Only mainnet allowed in prod.
 	//TODO(niyid) ***ABSOLUTELY CRITICAL!!!*** Only allow Mainnet XMR Wallet when Bisq is on Mainnet
 
     @Inject
-    public XmrWalletRpcWrapper(Preferences preferences) {
+    public XmrWalletRpcWrapper(Preferences preferences, TraderChatManager traderChatManager, PubKeyRing pubKeyRing, P2PService p2PService) {
     	this.preferences = preferences;
-		log.debug("instantiating MoneroWalletRpc...");
+    	this.traderChatManager = traderChatManager;
+    	this.pubKeyRing = pubKeyRing;
+    	this.p2PService = p2PService;
 		HOST = preferences.getXmrUserHostDelegate();
 		PORT = Integer.parseInt(preferences.getXmrHostPortDelegate());
         //TODO(niyid) Use preferences to determine which wallet to load in XmrWalletRpcWrapper		
 		try {
+			log.info("instantiating MoneroWalletRpc...");
 			openWalletRpcInstance(null);
 			if(isXmrWalletRpcRunning()) {
 				//TODO(niyid) Uncomment later
@@ -91,6 +109,15 @@ public class XmrWalletRpcWrapper {
 					log.debug("Wallet RPC Connection not valid (MAINNET/TESTNET mix-up); shutting down...");
 					walletRpc.closeWallet();
 					walletRpc = null;
+				} else {
+			        arrivedPropertyListener = (observable, oldValue, newValue) -> {
+			            if (newValue) {
+			            	if(SupportType.TRADE_XMR_MULTISIG.equals(multisigInfoMessage.getSupportType())) {
+			            		prepareTradeBob(multisigInfoMessage.getTradeId(), multisigInfoMessage.getMessage());
+			            	}
+			            }
+			        };
+					
 				}
 	/**/			
 			}
@@ -381,23 +408,27 @@ public class XmrWalletRpcWrapper {
 	}
 	
 	//Step 1: Method called by taker and then maker
-	public void prepareOffer(Offer offer, boolean isMaker) {
+	public void prepareTradeAlice(Trade trade, boolean isMaker) {
 		initWalletRpc();
 		
-		String keyForBob = isMaker ? OfferPayload.MULTISIG_INFO_MAKER : OfferPayload.MULTISIG_INFO_TAKER;
-		String keyForAlice = isMaker ? OfferPayload.MULTISIG_INFO_TAKER : OfferPayload.MULTISIG_INFO_MAKER;
+		Offer offer = trade.getOffer();
 		String walletPassword = generateCommonLangPassword();//TODO(niyid) This has to be stored somewhere safe
 		//TODO(niyid) Use offer to know which language to use for wallet seed
 		walletRpc.createWallet(offer.getId(), walletPassword, "English"); //TODO(niyid) Create 2/2 multisig wallet for taker - create_wallet
 		walletRpc.openWallet(offer.getId(), walletPassword);
 		String multisigInfoAlice = walletRpc.prepareMultisig();//TODO(niyid) Prepare multisig wallet - prepare_multisig
+		sendMultisigInfo(trade, isMaker, multisigInfoAlice, pubKeyRing);
 		walletRpc.makeMultisig(new String[] {multisigInfoAlice}, 2, walletPassword);//TODO(niyid)
-		//TODO(niyid) Share multisig info (Bob <==> Alice) through offer. Secure?
-		//TODO(niyid) Alternatively and more secure, use the chat message service to share multisig-info.
-		offer.getExtraDataMap().put(keyForAlice, multisigInfoAlice);
-		String multisigInfoBob = offer.getExtraDataMap().get(keyForBob);//Poll till available?
+		HashMap<String, String> data = new HashMap<>();
+		data.put("multisigInfo", multisigInfoAlice);
+		tradeData.put(trade.getId(), data);
+	}
+	
+	public void prepareTradeBob(String tradeId, String multisigInfoBob) {
+		String walletPassword = generateCommonLangPassword();//TODO(niyid) This has to be stored somewhere safe
 		walletRpc.importMultisigInfo(new String[] {multisigInfoBob});
-		walletRpc.finalizeMultisig(new String[] {multisigInfoBob, multisigInfoAlice}, walletPassword);
+		walletRpc.finalizeMultisig(new String[] {multisigInfoBob, tradeData.get(tradeId).get("multisigInfo")}, walletPassword);
+		
 	}
 	
 	//Step 2: Method called by maker
@@ -419,6 +450,21 @@ public class XmrWalletRpcWrapper {
 		//TODO(niyid) Maker creates a tx to send the amount held in the multisig wallet to the taker - transfer
 		//TODO(niyid) Maker signs tx - sign_multisig
 		//TODO(niyid) Maker submits  tx - submit_multisig
+	}
+	
+	private void sendMultisigInfo(Trade trade, boolean isMaker, String multisigInfo, PubKeyRing pubKeyRing) {
+		multisigInfoMessage = new ChatMessage(
+        		SupportType.TRADE_XMR_MULTISIG,
+        		trade.getId(),
+        		pubKeyRing.hashCode(),
+                !isMaker,
+                multisigInfo,
+                p2PService.getAddress(),
+                new ArrayList<Attachment>()
+        );
+		multisigInfoMessage.arrivedProperty().addListener(arrivedPropertyListener);
+        traderChatManager.addAndPersistChatMessage(multisigInfoMessage);
+        traderChatManager.sendChatMessage(multisigInfoMessage);
 	}
 	
 	private String generateCommonLangPassword() {

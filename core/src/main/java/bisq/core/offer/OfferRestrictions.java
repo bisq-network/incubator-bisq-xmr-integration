@@ -39,8 +39,6 @@ public class OfferRestrictions {
 
     public static Coin TOLERATED_SMALL_TRADE_AMOUNT = Coin.parseCoin("0.01");
 
-    public static XmrCoin XMR_TOLERATED_SMALL_TRADE_AMOUNT = XmrCoin.parseCoin("0.01");
-
     static boolean hasOfferMandatoryCapability(Offer offer, Capability mandatoryCapability) {
         Map<String, String> extraDataMap = offer.getOfferPayload().getExtraDataMap();
         if (extraDataMap != null && extraDataMap.containsKey(OfferPayload.CAPABILITIES)) {

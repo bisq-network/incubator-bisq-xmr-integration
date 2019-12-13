@@ -42,6 +42,7 @@ import bisq.core.offer.OpenOfferManager;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountUtil;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.Trade;
 import bisq.core.trade.closed.ClosedTradableManager;
@@ -129,6 +130,8 @@ class XmrOfferBookViewModel extends ActivatableViewModel {
     final IntegerProperty maxPlacesForPrice = new SimpleIntegerProperty();
     final IntegerProperty maxPlacesForMarketPriceMargin = new SimpleIntegerProperty();
     boolean showAllPaymentMethods = true;
+    protected MarketPrice xmrMarketPrice;
+    protected MarketPrice bsqMarketPrice;
     
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -162,6 +165,10 @@ class XmrOfferBookViewModel extends ActivatableViewModel {
         this.navigation = navigation;
         this.xmrFormatter = xmrFormatter;
         this.bsqFormatter = bsqFormatter;
+        
+        xmrMarketPrice = priceFeedService.getMarketPrice("XMR");
+        bsqMarketPrice = priceFeedService.getMarketPrice("BSQ");
+
 
         this.filteredItems = new FilteredList<>(offerBook.getOfferBookListItems());
         this.sortedItems = new SortedList<>(filteredItems);

@@ -17,40 +17,33 @@
 
 package bisq.core.xmr.wallet;
 
+import bisq.core.btc.wallet.Restrictions;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountUtil;
 import bisq.core.xmr.XmrCoin;
 
 import javax.annotation.Nullable;
 
-public class XmrRestrictions {
-    private static XmrCoin MIN_TRADE_AMOUNT;
-    private static XmrCoin MIN_BUYER_SECURITY_DEPOSIT;
-    // For the seller we use a fixed one as there is no way the seller can cancel the trade
-    // To make it editable would just increase complexity.
-    private static XmrCoin SELLER_SECURITY_DEPOSIT;
+import org.bitcoinj.core.Coin;
 
-    public static XmrCoin getMinNonDustOutput() {
-        if (minNonDustOutput == null)
-        	//TODO(niyid) Minimum dust hardcoded
-            minNonDustOutput = XmrCoin.DUST;
-        return minNonDustOutput;
+public class XmrRestrictions {
+    public static XmrCoin getMinNonDustOutput(double xmrToBtcRate) {
+    	return XmrCoin.fromCoin2XmrCoin(Restrictions.getMinNonDustOutput(), String.valueOf(xmrToBtcRate));
     }
 
     private static XmrCoin minNonDustOutput;
 
-    public static boolean isAboveDust(XmrCoin amount) {
-        return amount.compareTo(getMinNonDustOutput()) >= 0;
+    public static boolean isAboveDust(XmrCoin amount, double xmrToBtcRate) {
+        return amount.compareTo(getMinNonDustOutput(xmrToBtcRate)) >= 0;
     }
 
-    public static boolean isDust(XmrCoin amount) {
-        return !isAboveDust(amount);
+    public static boolean isDust(XmrCoin amount, double xmrToBtcRate) {
+        return !isAboveDust(amount, xmrToBtcRate);
     }
 
-    public static XmrCoin getMinTradeAmount() {
-        if (MIN_TRADE_AMOUNT == null)
-            MIN_TRADE_AMOUNT = XmrCoin.valueOf(100_000_000);//TODO(niyid) conversion required // 0,4 USD @ 4000 USD/BTC
-        return MIN_TRADE_AMOUNT;
+    public static XmrCoin getMinTradeAmount(double xmrToBtcRate) {
+    	Coin coin = Restrictions.getMinTradeAmount();
+    	return XmrCoin.fromCoin2XmrCoin(coin, String.valueOf(xmrToBtcRate));
     }
 
     public static double getDefaultBuyerSecurityDepositAsPercent(@Nullable PaymentAccount paymentAccount) {
@@ -76,10 +69,9 @@ public class XmrRestrictions {
 
     // We use MIN_BUYER_SECURITY_DEPOSIT as well as lower bound in case of small trade amounts.
     // So 0.0005 BTC is the min. buyer security deposit even with amount of 0.0001 BTC and 0.05% percentage value.
-    public static XmrCoin getMinBuyerSecurityDepositAsCoin(double btcToXmrRate) {
-        if (MIN_BUYER_SECURITY_DEPOSIT == null)
-            MIN_BUYER_SECURITY_DEPOSIT = XmrCoin.valueOf(Math.round(XmrCoin.parseCoin("0.001").value * btcToXmrRate));//TODO(niyid) conversion required // 0.001 BTC about 4 USD @ 4000 USD/BTC
-        return MIN_BUYER_SECURITY_DEPOSIT;
+    public static XmrCoin getMinBuyerSecurityDepositAsCoin(double xmrToBtcRate) {
+    	Coin coin = Restrictions.getMinBuyerSecurityDepositAsCoin();
+    	return XmrCoin.fromCoin2XmrCoin(coin, String.valueOf(xmrToBtcRate));
     }
 
 
@@ -87,9 +79,8 @@ public class XmrRestrictions {
         return 0.05; // 5% of trade amount.
     }
 
-    public static XmrCoin getMinSellerSecurityDepositAsCoin(double btcToXmrRate) {
-        if (SELLER_SECURITY_DEPOSIT == null)
-            SELLER_SECURITY_DEPOSIT = XmrCoin.valueOf(Math.round(XmrCoin.parseCoin("0.005").value * btcToXmrRate)); ////TODO(niyid) conversion required 0.005 BTC about 20 USD @ 4000 USD/BTC
-        return SELLER_SECURITY_DEPOSIT;
+    public static XmrCoin getMinSellerSecurityDepositAsCoin(double xmrToBtcRate) {
+    	Coin coin = Restrictions.getMinSellerSecurityDepositAsCoin();
+    	return XmrCoin.fromCoin2XmrCoin(coin, String.valueOf(xmrToBtcRate));
     }
 }

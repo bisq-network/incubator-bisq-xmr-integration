@@ -19,6 +19,8 @@ package bisq.desktop.util.validation;
 
 import bisq.core.xmr.wallet.XmrRestrictions;
 import bisq.core.locale.Res;
+import bisq.core.provider.price.MarketPrice;
+import bisq.core.provider.price.PriceFeedService;
 import bisq.core.util.XmrBSFormatter;
 import bisq.core.xmr.XmrCoin;
 
@@ -52,11 +54,17 @@ public class Xmr2Validator extends NumberValidator {
     @Setter
     @Getter
     protected XmrCoin maxTradeLimit;
+    
+    private PriceFeedService priceFeedService;
+    private MarketPrice xmrMarketPrice;
 
     @Inject
-    public Xmr2Validator(XmrBSFormatter formatter) {
+    public Xmr2Validator(XmrBSFormatter formatter, PriceFeedService priceFeedService) {
         this.formatter = formatter;
+        this.priceFeedService = priceFeedService;
+        
         setMaxValue(XmrCoin.parseCoin("1000"));
+        xmrMarketPrice = priceFeedService.getMarketPrice("XMR");
     }
 
 
@@ -87,12 +95,13 @@ public class Xmr2Validator extends NumberValidator {
 
     protected ValidationResult validateIfAboveDust(String input) {
         try {
+        	double btcToXmrRate = xmrMarketPrice.getPrice();
             final XmrCoin coin = XmrCoin.parseCoin(input);
-            if (XmrRestrictions.isAboveDust(coin))
+            if (XmrRestrictions.isAboveDust(coin, btcToXmrRate))
                 return new ValidationResult(true);
             else
                 return new ValidationResult(false, Res.get("validation.amountBelowDust",
-                        formatter.formatCoinWithCode(XmrRestrictions.getMinNonDustOutput())));
+                        formatter.formatCoinWithCode(XmrRestrictions.getMinNonDustOutput(btcToXmrRate))));
         } catch (Throwable t) {
             return new ValidationResult(false, Res.get("validation.invalidInput", t.getMessage()));
         }

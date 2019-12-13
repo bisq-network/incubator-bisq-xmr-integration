@@ -214,7 +214,9 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
         log.info("Using XMR Market Price of: Currency -> {}, Price -> {}, Date -> {}, External -> {}", xmrMarketPrice.getCurrencyCode(), (1.0 / xmrMarketPrice.getPrice()), Date.from(Instant.ofEpochSecond(xmrMarketPrice.getTimestampSec())), xmrMarketPrice.isExternallyProvidedPrice());
         log.info("Using BSQ Market Price of: Currency -> {}, Price -> {}, Date -> {}, External -> {}", bsqMarketPrice.getCurrencyCode(), (1.0 / bsqMarketPrice.getPrice()), Date.from(Instant.ofEpochSecond(bsqMarketPrice.getTimestampSec())), bsqMarketPrice.isExternallyProvidedPrice());
         bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
+        btcToXmrRate = xmrMarketPrice.getPrice();
         log.info("XMR => BSQ is {}", bsqToXmrRate);
+        log.info("XMR => BTC is {}", btcToXmrRate);
         xmrBalanceListener = new XmrBalanceListener() {
             @Override
             public void onBalanceChanged(XmrCoin balance, MoneroTx tx) {
@@ -689,11 +691,12 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
             try {
             	//TODO(niyid) This was the problem
 //                XmrCoin value = DisplayUtils.reduceTo4Decimals(XmrCoin.fromCoin2XmrCoin(price.get().getAmountByVolume(volume.get()), String.valueOf(xmrMarketPrice.getPrice())), xmrFormatter);
+            	btcToXmrRate = xmrMarketPrice.getPrice();
                 XmrCoin value = DisplayUtils.reduceTo4Decimals(XmrCoin.fromCoinValue(price.get().getAmountByVolume(volume.get()).value), xmrFormatter);
                 if (isHalCashAccount())
-                    value = XmrOfferUtil.getAdjustedAmountForHalCash(value, price.get(), getMaxTradeLimit());
+                    value = XmrOfferUtil.getAdjustedAmountForHalCash(value, price.get(), getMaxTradeLimit(), btcToXmrRate);
                 else if (CurrencyUtil.isFiatCurrency(tradeCurrencyCode.get()))
-                    value = XmrOfferUtil.getRoundedFiatAmount(value, price.get(), getMaxTradeLimit());
+                    value = XmrOfferUtil.getRoundedFiatAmount(value, price.get(), getMaxTradeLimit(), btcToXmrRate);
 
                 calculateVolume();
 

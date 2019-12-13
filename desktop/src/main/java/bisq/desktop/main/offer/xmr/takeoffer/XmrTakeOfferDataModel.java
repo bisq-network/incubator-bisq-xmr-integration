@@ -582,11 +582,12 @@ class XmrTakeOfferDataModel extends XmrOfferDataModel {
         //noinspection SimplifiableIfStatement
         boolean result;
         if (amount.get() != null && offer != null) {
+        	double btcToXmrRate = xmrMarketPrice.getPrice();
             XmrCoin customAmount = XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)).subtract(amount.get());
-            result = customAmount.isPositive() && customAmount.isLessThan(XmrRestrictions.getMinNonDustOutput());
+            result = customAmount.isPositive() && customAmount.isLessThan(XmrRestrictions.getMinNonDustOutput(btcToXmrRate));
 
             if (result)
-                log.info("would create dust for maker, customAmount={},  XmrRestrictions.getMinNonDustOutput()={}", customAmount, XmrRestrictions.getMinNonDustOutput());
+                log.info("would create dust for maker, customAmount={},  XmrRestrictions.getMinNonDustOutput()={}", customAmount, XmrRestrictions.getMinNonDustOutput(btcToXmrRate));
         } else {
             result = true;
         }

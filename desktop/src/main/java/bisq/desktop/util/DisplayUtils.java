@@ -307,12 +307,12 @@ public class DisplayUtils {
         return ParsingUtils.parseToCoin(input, bsFormatter).equals(parseToCoinWith4Decimals(input, bsFormatter));
     }
     
-    public static XmrCoin parseToCoinWith4Decimals(String input, XmrBSFormatter bsFormatter) {
+    public static XmrCoin parseToCoinWith12Decimals(String input, XmrBSFormatter bsFormatter) {
         try {
-            return XmrCoin.valueOf(new BigDecimal(input).longValueExact() * 1000000000000l); //Recalibrate by smallest unit exp=12
+            return XmrCoin.valueOf(Math.round(new BigDecimal(input).doubleValue() * 1_000_000_000_000l)); //Recalibrate by smallest unit exp=12
         } catch (Throwable t) {
             if (input != null && input.length() > 0)
-                log.warn("Exception at parseToCoinWith4Decimals: " + t.toString());
+                log.warn("Exception at parseToCoinWith12Decimals: " + t.toString());
             return XmrCoin.ZERO;
         }
     }
