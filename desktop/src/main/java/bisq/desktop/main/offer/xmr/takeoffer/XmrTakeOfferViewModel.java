@@ -40,6 +40,7 @@ import bisq.core.offer.OfferRestrictions;
 import bisq.core.offer.XmrOfferUtil;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.Trade;
 import bisq.core.trade.Trade.TradeBaseCurrency;
@@ -142,7 +143,9 @@ class XmrTakeOfferViewModel extends ActivatableWithDataModel<XmrTakeOfferDataMod
     //  private Subscription isFeeSufficientSubscription;
     private Runnable takeOfferSucceededHandler;
     String marketPriceMargin;
-    
+    protected MarketPrice xmrMarketPrice;
+    protected MarketPrice bsqMarketPrice;
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
@@ -171,6 +174,10 @@ class XmrTakeOfferViewModel extends ActivatableWithDataModel<XmrTakeOfferDataMod
         this.navigation = navigation;
         this.xmrFormatter = xmrFormatter;
         this.bsqFormatter = bsqFormatter;
+
+        xmrMarketPrice = priceFeedService.getMarketPrice("XMR");
+        bsqMarketPrice = priceFeedService.getMarketPrice("BSQ");
+        
         createListeners();
     }
 
@@ -221,7 +228,7 @@ class XmrTakeOfferViewModel extends ActivatableWithDataModel<XmrTakeOfferDataMod
             amountDescription = Res.get("takeOffer.amountPriceBox.sell.amountDescription", Trade.TradeBaseCurrency.XMR);
         }
 
-        amountRange = xmrFormatter.formatCoin(offer.getMinAmount()) + " - " + xmrFormatter.formatCoin(XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)));
+        amountRange = xmrFormatter.formatCoin(offer.getMinAmount()) + " - " + xmrFormatter.formatCoin(XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)));
         price = XmrBSFormatter.formatPrice(dataModel.tradePrice);
         marketPriceMargin = XmrBSFormatter.formatToPercent(offer.getMarketPriceMargin());
         paymentLabel = Res.get("takeOffer.fundsBox.paymentLabel", offer.getShortId());
@@ -235,9 +242,9 @@ class XmrTakeOfferViewModel extends ActivatableWithDataModel<XmrTakeOfferDataMod
         offer.errorMessageProperty().addListener(offerErrorListener);
         errorMessage.set(offer.getErrorMessage());
 
-        xmrValidator.setMaxValue(XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)));
-        xmrValidator.setMaxTradeLimit(XmrCoin.valueOf(Math.min(dataModel.getMaxTradeLimit(), XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)).value)));
-        xmrValidator.setMinValue(XmrCoin.fromCoin2XmrCoin(offer.getMinAmount(), offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)));
+        xmrValidator.setMaxValue(XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)));
+        xmrValidator.setMaxTradeLimit(XmrCoin.valueOf(Math.min(dataModel.getMaxTradeLimit(), XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)).value)));
+        xmrValidator.setMinValue(XmrCoin.fromCoin2XmrCoin(offer.getMinAmount(), offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -263,7 +270,7 @@ class XmrTakeOfferViewModel extends ActivatableWithDataModel<XmrTakeOfferDataMod
 
     public void onPaymentAccountSelected(PaymentAccount paymentAccount) {
         dataModel.onPaymentAccountSelected(paymentAccount);
-        xmrValidator.setMaxTradeLimit(XmrCoin.valueOf(Math.min(dataModel.getMaxTradeLimit(), XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)).value)));
+        xmrValidator.setMaxTradeLimit(XmrCoin.valueOf(Math.min(dataModel.getMaxTradeLimit(), XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)).value)));
         updateButtonDisableState();
     }
 
@@ -303,7 +310,7 @@ class XmrTakeOfferViewModel extends ActivatableWithDataModel<XmrTakeOfferDataMod
             tradeFee.set(getFormatterForTakerFee().formatCoin(takerFeeAsCoin));
 
             XmrCoin makerFeeInXmr = dataModel.getTakerFeeInXmr();
-            Optional<Volume> optionalXmrFeeInFiat = XmrOfferUtil.getFeeInUserFiatCurrency(XmrCoin.fromXmrCoin2Coin(makerFeeInXmr, "BTC", offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)),
+            Optional<Volume> optionalXmrFeeInFiat = XmrOfferUtil.getFeeInUserFiatCurrency(XmrCoin.fromXmrCoin2Coin(makerFeeInXmr, "BTC", offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)),
                     true, preferences, priceFeedService, bsqFormatter);
             String xmrFeeWithFiatAmount = DisplayUtils.getFeeWithFiatAmount(makerFeeInXmr, optionalXmrFeeInFiat, xmrFormatter);
             if (DevEnv.isDaoActivated()) {
@@ -347,6 +354,8 @@ class XmrTakeOfferViewModel extends ActivatableWithDataModel<XmrTakeOfferDataMod
 
     // On focus out we do validation and apply the data to the model
     void onFocusOutAmountTextField(boolean oldValue, boolean newValue, String userInput) {
+    	double btcToXmrRate = xmrMarketPrice.getPrice(); 
+    	XmrCoin toleratedSmallTradeAmount = XmrCoin.fromCoin2XmrCoin(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, String.valueOf(btcToXmrRate));
         if (oldValue && !newValue) {
             InputValidator.ValidationResult result = isXmrInputValid(amount.get());
             amountValidationResult.set(result);
@@ -363,8 +372,7 @@ class XmrTakeOfferViewModel extends ActivatableWithDataModel<XmrTakeOfferDataMod
                 long maxTradeLimit = dataModel.getMaxTradeLimit();
                 if (dataModel.getPaymentMethod().getId().equals(PaymentMethod.HAL_CASH_ID)) {
                     XmrCoin adjustedAmountForHalCash = XmrOfferUtil.getAdjustedAmountForHalCash(dataModel.getAmount().get(),
-                            tradePrice,
-                            maxTradeLimit);
+                            tradePrice, maxTradeLimit, btcToXmrRate);
                     dataModel.applyAmount(adjustedAmountForHalCash);
                     amount.set(xmrFormatter.formatCoin(dataModel.getAmount().get()));
                 } else if (CurrencyUtil.isFiatCurrency(dataModel.getCurrencyCode())) {
@@ -372,7 +380,7 @@ class XmrTakeOfferViewModel extends ActivatableWithDataModel<XmrTakeOfferDataMod
                         // We only apply the rounding if the amount is variable (minAmount is lower as amount).
                         // Otherwise we could get an amount lower then the minAmount set by rounding
                         XmrCoin roundedAmount = XmrOfferUtil.getRoundedFiatAmount(dataModel.getAmount().get(), tradePrice,
-                                maxTradeLimit);
+                                maxTradeLimit, btcToXmrRate);
                         dataModel.applyAmount(roundedAmount);
                     }
                     amount.set(xmrFormatter.formatCoin(dataModel.getAmount().get()));
@@ -389,16 +397,16 @@ class XmrTakeOfferViewModel extends ActivatableWithDataModel<XmrTakeOfferDataMod
                 if (dataModel.wouldCreateDustForMaker())
                     amountValidationResult.set(new InputValidator.ValidationResult(false,
                             Res.get("takeOffer.validation.amountLargerThanOfferAmountMinusFee")));
-            } else if (xmrValidator.getMaxTradeLimit() != null && xmrValidator.getMaxTradeLimit().value == OfferRestrictions.XMR_TOLERATED_SMALL_TRADE_AMOUNT.value) {
+            } else if (xmrValidator.getMaxTradeLimit() != null && xmrValidator.getMaxTradeLimit().value == toleratedSmallTradeAmount.value) {
                 if (dataModel.getDirection() == OfferPayload.Direction.BUY) {
                     new Popup<>().information(Res.get("popup.warning.tradeLimitDueAccountAgeRestriction.seller",
-                            xmrFormatter.formatCoinWithCode(OfferRestrictions.XMR_TOLERATED_SMALL_TRADE_AMOUNT),
+                            xmrFormatter.formatCoinWithCode(toleratedSmallTradeAmount),
                             Res.get("offerbook.warning.newVersionAnnouncement")))
                             .width(900)
                             .show();
                 } else {
                     new Popup<>().information(Res.get("popup.warning.tradeLimitDueAccountAgeRestriction.buyer",
-                            xmrFormatter.formatCoinWithCode(OfferRestrictions.XMR_TOLERATED_SMALL_TRADE_AMOUNT),
+                            xmrFormatter.formatCoinWithCode(toleratedSmallTradeAmount),
                             Res.get("offerbook.warning.newVersionAnnouncement")))
                             .width(900)
                             .show();
@@ -645,16 +653,17 @@ class XmrTakeOfferViewModel extends ActivatableWithDataModel<XmrTakeOfferDataMod
 
     private void setAmountToModel() {
         if (amount.get() != null && !amount.get().isEmpty()) {
-            XmrCoin amount = DisplayUtils.parseToCoinWith4Decimals(this.amount.get(), xmrFormatter);
+            XmrCoin amount = DisplayUtils.parseToCoinWith12Decimals(this.amount.get(), xmrFormatter);
             long maxTradeLimit = dataModel.getMaxTradeLimit();
             Price price = dataModel.tradePrice;
+            double btcToXmrRate = xmrMarketPrice.getPrice();
             if (price != null) {
                 if (dataModel.isHalCashAccount()) {
-                    amount = XmrOfferUtil.getAdjustedAmountForHalCash(amount, price, maxTradeLimit);
+                    amount = XmrOfferUtil.getAdjustedAmountForHalCash(amount, price, maxTradeLimit, btcToXmrRate);
                 } else if (CurrencyUtil.isFiatCurrency(dataModel.getCurrencyCode()) && !isAmountEqualMinAmount(amount)) {
                     // We only apply the rounding if the amount is variable (minAmount is lower as amount).
                     // Otherwise we could get an amount lower then the minAmount set by rounding
-                    amount = XmrOfferUtil.getRoundedFiatAmount(amount, price, maxTradeLimit);
+                    amount = XmrOfferUtil.getRoundedFiatAmount(amount, price, maxTradeLimit, btcToXmrRate);
                 }
             }
             dataModel.applyAmount(amount);

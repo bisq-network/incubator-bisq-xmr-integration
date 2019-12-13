@@ -393,7 +393,7 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
         String message = null;
         if (makerFee != null) {
         	Coin requiredBsqAmount = makerFee.subtract(model.getDataModel().getBsqBalance());
-        	double bsqToXmrRate = model.xmrMarketPrice.getPrice() / model.bsqMarketPrice.getPrice();
+        	double bsqToXmrRate = model.bsqMarketPrice.getPrice() / model.xmrMarketPrice.getPrice();
         	XmrCoin requiredBsqAmountInXmr = XmrCoin.fromCoin2XmrCoin(requiredBsqAmount, String.valueOf(bsqToXmrRate));
             message = Res.get("popup.warning.insufficientBsqFundsForXmrFeePayment", "BSQ",
                     bsqFormatter.formatCoinWithCode(requiredBsqAmount),
@@ -1120,7 +1120,8 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
             String missingBsq = null;
             if (makerFee != null) {
             	Coin requiredBsqAmount = makerFee.subtract(model.getDataModel().getBsqBalance());
-            	double bsqToXmrRate = model.xmrMarketPrice.getPrice() / model.bsqMarketPrice.getPrice();
+            	requiredBsqAmount = requiredBsqAmount.isNegative() ? requiredBsqAmount.negate() : requiredBsqAmount;
+            	double bsqToXmrRate = model.bsqMarketPrice.getPrice() / model.xmrMarketPrice.getPrice();
             	XmrCoin requiredBsqAmountInXmr = XmrCoin.fromCoin2XmrCoin(requiredBsqAmount, String.valueOf(bsqToXmrRate));
                 missingBsq = Res.get("popup.warning.insufficientBsqFundsForXmrFeePayment", "BSQ",
                         bsqFormatter.formatCoinWithCode(requiredBsqAmount),

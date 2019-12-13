@@ -52,6 +52,7 @@ import bisq.core.trade.handlers.TransactionResultHandler;
 import bisq.core.trade.statistics.ReferralIdService;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
+import bisq.core.util.BsqFormatter;
 import bisq.core.util.XmrBSFormatter;
 import bisq.core.xmr.wallet.XmrWalletRpcWrapper;
 import bisq.core.xmr.wallet.listeners.WalletUiListener;
@@ -124,6 +125,7 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
     private final TxFeeEstimationService txFeeEstimationService;
     private final ReferralIdService referralIdService;
     private final XmrBSFormatter xmrFormatter;
+    private final BsqFormatter bsqFormatter;
     private XmrMakerFeeProvider makerFeeProvider;
     private final Navigation navigation;
     private final String offerId;
@@ -180,9 +182,10 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
                                  TxFeeEstimationService txFeeEstimationService,
                                  ReferralIdService referralIdService,
                                  XmrBSFormatter xmrFormatter,
+                                 BsqFormatter bsqFormatter,
                                  XmrMakerFeeProvider makerFeeProvider,
                                  Navigation navigation) {
-        super(bsqWalletService, xmrWalletWrapper, priceFeedService);
+        super(bsqWalletService, xmrWalletWrapper, priceFeedService, bsqFormatter);
 
         this.openOfferManager = openOfferManager;
         this.btcWalletService = btcWalletService;
@@ -199,6 +202,7 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
         this.txFeeEstimationService = txFeeEstimationService;
         this.referralIdService = referralIdService;
         this.xmrFormatter = xmrFormatter;
+        this.bsqFormatter = bsqFormatter;
         this.makerFeeProvider = makerFeeProvider;
         this.navigation = navigation;
 
@@ -213,8 +217,10 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
         
         log.info("Using XMR Market Price of: Currency -> {}, Price -> {}, Date -> {}, External -> {}", xmrMarketPrice.getCurrencyCode(), (1.0 / xmrMarketPrice.getPrice()), Date.from(Instant.ofEpochSecond(xmrMarketPrice.getTimestampSec())), xmrMarketPrice.isExternallyProvidedPrice());
         log.info("Using BSQ Market Price of: Currency -> {}, Price -> {}, Date -> {}, External -> {}", bsqMarketPrice.getCurrencyCode(), (1.0 / bsqMarketPrice.getPrice()), Date.from(Instant.ofEpochSecond(bsqMarketPrice.getTimestampSec())), bsqMarketPrice.isExternallyProvidedPrice());
-        bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
-        log.info("XMR => BSQ is {}", bsqToXmrRate);
+        bsqToXmrRate = bsqMarketPrice.getPrice() / xmrMarketPrice.getPrice();
+        btcToXmrRate = xmrMarketPrice.getPrice();
+        log.info("BSQ => XMR is {}", bsqToXmrRate);
+        log.info("BTC => XMR is {}", btcToXmrRate);
         xmrBalanceListener = new XmrBalanceListener() {
             @Override
             public void onBalanceChanged(XmrCoin balance, MoneroTx tx) {
@@ -689,11 +695,12 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
             try {
             	//TODO(niyid) This was the problem
 //                XmrCoin value = DisplayUtils.reduceTo4Decimals(XmrCoin.fromCoin2XmrCoin(price.get().getAmountByVolume(volume.get()), String.valueOf(xmrMarketPrice.getPrice())), xmrFormatter);
+            	btcToXmrRate = xmrMarketPrice.getPrice();
                 XmrCoin value = DisplayUtils.reduceTo4Decimals(XmrCoin.fromCoinValue(price.get().getAmountByVolume(volume.get()).value), xmrFormatter);
                 if (isHalCashAccount())
-                    value = XmrOfferUtil.getAdjustedAmountForHalCash(value, price.get(), getMaxTradeLimit());
+                    value = XmrOfferUtil.getAdjustedAmountForHalCash(value, price.get(), getMaxTradeLimit(), btcToXmrRate);
                 else if (CurrencyUtil.isFiatCurrency(tradeCurrencyCode.get()))
-                    value = XmrOfferUtil.getRoundedFiatAmount(value, price.get(), getMaxTradeLimit());
+                    value = XmrOfferUtil.getRoundedFiatAmount(value, price.get(), getMaxTradeLimit(), btcToXmrRate);
 
                 calculateVolume();
 

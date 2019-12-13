@@ -35,6 +35,7 @@ import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.statistics.ReferralIdService;
 import bisq.core.user.Preferences;
 import bisq.core.user.User;
+import bisq.core.util.BsqFormatter;
 import bisq.core.util.XmrBSFormatter;
 import bisq.core.xmr.wallet.XmrWalletRpcWrapper;
 import bisq.network.p2p.P2PService;
@@ -66,6 +67,7 @@ class XmrCreateOfferDataModel extends XmrMutableOfferDataModel {
                                 TxFeeEstimationService txFeeEstimationService,
                                 ReferralIdService referralIdService,
                                 XmrBSFormatter xmrFormatter,
+                                BsqFormatter bsqFormatter,
                                 XmrMakerFeeProvider makerFeeProvider,
                                 Navigation navigation) {
         super(openOfferManager,
@@ -83,6 +85,7 @@ class XmrCreateOfferDataModel extends XmrMutableOfferDataModel {
                 txFeeEstimationService,
                 referralIdService,
                 xmrFormatter,
+                bsqFormatter,
                 makerFeeProvider,
                 navigation);
     }

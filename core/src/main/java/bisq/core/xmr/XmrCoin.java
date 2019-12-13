@@ -309,36 +309,36 @@ public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializabl
     /**
      * 
      * @param coin
-     * @param price
+     * @param xmrConversionRateAsString
      * @return
      */
-    public static XmrCoin fromCoin2XmrCoin(Coin coin, String price) {
+    public static XmrCoin fromCoin2XmrCoin(Coin coin, String xmrConversionRateAsString) {
     	double rate = 1;
     	coin = coin != null ? coin : Coin.ZERO;
     	try {
-        	rate = Double.parseDouble(price);
+        	rate = Double.parseDouble(xmrConversionRateAsString);
     	} catch (Exception e) {
-    		log.error("Exception occurred: {}, {}", price, coin.getValue());
+    		log.error("Exception occurred: {}, {}", xmrConversionRateAsString, coin.getValue());
 		}
-    	return XmrCoin.valueOf(Math.round((coin.getValue() * 10_000) * rate)); //Recalibrate by 12 - 8 = 4
+    	return XmrCoin.valueOf(Math.round((coin.getValue() * 10_000_000_000l) * rate)); //Recalibrate by 12 - 8 = 4
     }
     
     /**
      * 
      * @param coin
      * @param currencyCode For now, this is just a label that describes the relationship between the coin and the price
-     * @param price
+     * @param xmrConversionRateAsString
      * @return
      */
-    public static Coin fromXmrCoin2Coin(XmrCoin coin, String currencyCode, String price) {
+    public static Coin fromXmrCoin2Coin(XmrCoin coin, String currencyCode, String xmrConversionRateAsString) {
     	double rate = 1;
     	coin = coin != null ? coin : XmrCoin.ZERO;
     	try {
-        	rate = Double.parseDouble(price);
+        	rate = Double.parseDouble(xmrConversionRateAsString);
     	} catch (Exception e) {
     		e.printStackTrace();
 		}
-    	return Coin.valueOf(Math.round(coin.getValue() / (10_000 * rate))); //Recalibrate by 12 - 8 = 4
+    	return Coin.valueOf(Math.round(coin.getValue() / (10_000_000_000l * rate))); //Recalibrate by 12 - 8 = 4
     }
     
     /**
