@@ -50,6 +50,8 @@ import bisq.core.offer.OfferUtil;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
+import bisq.core.trade.Trade;
+import bisq.core.trade.Trade.TradeBaseCurrency;
 import bisq.core.user.Preferences;
 import bisq.core.util.BSFormatter;
 import bisq.core.util.BsqFormatter;
@@ -599,8 +601,8 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         btcValidator.setMinValue(Restrictions.getMinTradeAmount());
 
         final boolean isBuy = dataModel.getDirection() == OfferPayload.Direction.BUY;
-        directionLabel = isBuy ? Res.get("shared.buyBitcoin") : Res.get("shared.sellBitcoin");
-        amountDescription = Res.get("createOffer.amountPriceBox.amountDescription",
+        directionLabel = isBuy ? Res.get("shared.buyXxx", Trade.TradeBaseCurrency.BTC) : Res.get("shared.sellXxx", Trade.TradeBaseCurrency.BTC);
+        amountDescription = Res.get("createOffer.amountPriceBox.amountDescription", Trade.TradeBaseCurrency.BTC,
                 isBuy ? Res.get("shared.buy") : Res.get("shared.sell"));
 
         securityDepositValidator.setPaymentAccount(dataModel.paymentAccount);

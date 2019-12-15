@@ -55,6 +55,8 @@ import bisq.core.offer.OfferPayload;
 import bisq.core.offer.OfferRestrictions;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.trade.Trade;
+import bisq.core.trade.Trade.TradeBaseCurrency;
 import bisq.core.user.DontShowAgainLookup;
 import bisq.core.util.BSFormatter;
 
@@ -166,8 +168,8 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
     public void initialize() {
         root.setPadding(new Insets(15, 15, 5, 15));
 
-        final TitledGroupBg titledGroupBg = addTitledGroupBg(root, gridRow, 2, Res.get("offerbook.availableOffers"));
-        titledGroupBg.getStyleClass().add("last");
+//        final TitledGroupBg titledGroupBg = addTitledGroupBg(root, gridRow, 2, Res.get("offerbook.availableOffers"));
+//        titledGroupBg.getStyleClass().add("last");
 
         HBox hBox = new HBox();
         hBox.setAlignment(Pos.CENTER_LEFT);
@@ -653,7 +655,7 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> getAmountColumn() {
-        AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> column = new AutoTooltipTableColumn<>(Res.get("shared.BTCMinMax"), Res.get("shared.amountHelp"));
+        AutoTooltipTableColumn<OfferBookListItem, OfferBookListItem> column = new AutoTooltipTableColumn<>(Res.get("shared.XXXMinMax", Trade.TradeBaseCurrency.BTC), Res.get("shared.amountHelp"));
         column.setMinWidth(100);
         column.getStyleClass().add("number-column");
         column.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));

@@ -64,7 +64,6 @@ public class XmrWalletView extends ActivatableViewAndModel<TabPane, Activatable>
     @Override
     public void initialize() {
     	log.debug("XmrWalletView.initialize({})", selectedTab);
-    	root.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
         xmrSendTab.setText(Res.get("shared.account.wallet.menuItem.send").toUpperCase());
         xmrReceiveTab.setText(Res.get("shared.account.wallet.menuItem.receive").toUpperCase());
         xmrTxTab.setText(Res.get("shared.account.wallet.menuItem.transactions").toUpperCase());
@@ -124,7 +123,7 @@ public class XmrWalletView extends ActivatableViewAndModel<TabPane, Activatable>
                	navigation.navigateTo(MainView.class, AccountView.class, AltCoinWalletsView.class, XmrWalletView.class, XmrTxView.class);
             loadView(navigation.getCurrentPath().get(4));
         }
-        //TODO(niyid) Use preferences to determine which wallet to load in XmrWalletRpcViewHelper
+        //TODO(niyid) Use preferences to determine which wallet to load in XmrWalletRpcWrapper
     }
 
     @Override

@@ -96,7 +96,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
     @Override
     protected void initialize() {
         navigationListener = viewPath -> {
-            if (viewPath.size() == 3 && viewPath.indexOf(this.getClass()) == 1)
+            if (viewPath.size() == 4 && viewPath.indexOf(this.getClass()) == 2)
                 loadView(viewPath.tip());
         };
         tabChangeListener = (observableValue, oldValue, newValue) -> {
@@ -141,7 +141,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
         root.getSelectionModel().selectedItemProperty().addListener(tabChangeListener);
         root.getTabs().addListener(tabListChangeListener);
         navigation.addListener(navigationListener);
-        navigation.navigateTo(MainView.class, this.getClass(), OfferBookView.class);
+        navigation.navigateTo(MainView.class, TradeBaseView.class, this.getClass(), OfferBookView.class);
     }
 
     @Override
@@ -168,7 +168,8 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
         if (viewClass == OfferBookView.class && offerBookView == null) {
             view = viewLoader.load(viewClass);
             // Offerbook must not be cached by ViewLoader as we use 2 instances for sell and buy screens.
-            offerBookTab = new Tab(isBuy ? Res.get("shared.buyBitcoin").toUpperCase() : Res.get("shared.sellBitcoin").toUpperCase());
+//            offerBookTab = new Tab(isBuy ? Res.get("shared.buyXxx").toUpperCase() : Res.get("shared.sellXxx").toUpperCase());
+            offerBookTab = new Tab(Res.get("offerbook.availableOffers").toUpperCase());
             offerBookTab.setClosable(false);
             offerBookTab.setContent(view.getRoot());
             tabPane.getTabs().add(offerBookTab);
@@ -256,13 +257,13 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
     private void openTakeOffer(Offer offer) {
         OfferView.this.takeOfferViewOpen = true;
         OfferView.this.offer = offer;
-        OfferView.this.navigation.navigateTo(MainView.class, OfferView.this.getClass(), TakeOfferView.class);
+        OfferView.this.navigation.navigateTo(MainView.class, TradeBaseView.class, OfferView.this.getClass(), TakeOfferView.class);
     }
 
     private void openCreateOffer(TradeCurrency tradeCurrency) {
         OfferView.this.createOfferViewOpen = true;
         OfferView.this.tradeCurrency = tradeCurrency;
-        OfferView.this.navigation.navigateTo(MainView.class, OfferView.this.getClass(), CreateOfferView.class);
+        OfferView.this.navigation.navigateTo(MainView.class, TradeBaseView.class, OfferView.this.getClass(), CreateOfferView.class);
     }
 
     private void onCreateOfferViewRemoved() {
@@ -273,7 +274,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
         }
         offerBookView.enableCreateOfferButton();
 
-        navigation.navigateTo(MainView.class, this.getClass(), OfferBookView.class);
+        navigation.navigateTo(MainView.class, TradeBaseView.class, this.getClass(), OfferBookView.class);
 
         preferences.dontShowAgain(BUYER_SECURITY_DEPOSIT_NEWS, true);
     }
@@ -286,7 +287,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
             takeOfferView = null;
         }
 
-        navigation.navigateTo(MainView.class, this.getClass(), OfferBookView.class);
+        navigation.navigateTo(MainView.class, TradeBaseView.class, this.getClass(), OfferBookView.class);
     }
 
     public interface OfferActionHandler {

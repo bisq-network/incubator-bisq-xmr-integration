@@ -20,6 +20,7 @@ package bisq.core.offer;
 import bisq.common.app.Capabilities;
 import bisq.common.app.Capability;
 import bisq.common.util.Utilities;
+import bisq.core.xmr.XmrCoin;
 
 import org.bitcoinj.core.Coin;
 

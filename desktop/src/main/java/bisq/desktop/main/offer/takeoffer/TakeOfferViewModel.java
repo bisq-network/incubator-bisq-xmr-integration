@@ -42,6 +42,7 @@ import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.Trade;
+import bisq.core.trade.Trade.TradeBaseCurrency;
 import bisq.core.user.Preferences;
 import bisq.core.util.BSFormatter;
 import bisq.core.util.BsqFormatter;
@@ -208,11 +209,11 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         this.offer = offer;
 
         if (offer.isBuyOffer()) {
-            directionLabel = Res.get("shared.sellBitcoin");
-            amountDescription = Res.get("takeOffer.amountPriceBox.buy.amountDescription");
+            directionLabel = Res.get("shared.sellXxx", Trade.TradeBaseCurrency.BTC);
+            amountDescription = Res.get("takeOffer.amountPriceBox.buy.amountDescription", Trade.TradeBaseCurrency.BTC);
         } else {
-            directionLabel = Res.get("shared.buyBitcoin");
-            amountDescription = Res.get("takeOffer.amountPriceBox.sell.amountDescription");
+            directionLabel = Res.get("shared.buyXxx", Trade.TradeBaseCurrency.BTC);
+            amountDescription = Res.get("takeOffer.amountPriceBox.sell.amountDescription", Trade.TradeBaseCurrency.BTC);
         }
 
         amountRange = btcFormatter.formatCoin(offer.getMinAmount()) + " - " + btcFormatter.formatCoin(offer.getAmount());

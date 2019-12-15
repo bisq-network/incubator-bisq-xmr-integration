@@ -173,11 +173,13 @@ class OfferBookViewModel extends ActivatableViewModel {
             final Optional<OfferBookListItem> highestAmountOffer = filteredItems.stream()
                     .max(Comparator.comparingLong(o -> o.getOffer().getAmount().getValue()));
 
-            final boolean containsRangeAmount = filteredItems.stream().anyMatch(o -> o.getOffer().isRange());
+            //TODO(niyid) It should only match offers whose counterCurrencyCode == "BTC" when the baseCurrencyCode is an altcoin
+            //TODO(niyid) or baseCurrencyCode == "BTC" when counterCurrencyCode is a fiat
+            final boolean containsRangeAmountAndTradedCurrencyMatch = filteredItems.stream().anyMatch(o -> o.getOffer().isRange());
 
             if (highestAmountOffer.isPresent()) {
                 final OfferBookListItem item = highestAmountOffer.get();
-                if (!item.getOffer().isRange() && containsRangeAmount) {
+                if (!item.getOffer().isRange() && containsRangeAmountAndTradedCurrencyMatch) {
                     maxPlacesForAmount.set(formatAmount(item.getOffer(), false)
                             .length() * 2 + BSFormatter.RANGE_SEPARATOR.length());
                     maxPlacesForVolume.set(formatVolume(item.getOffer(), false)

@@ -1539,6 +1539,14 @@ message PreferencesPayload {
     int32 block_notify_port = 53;
     int32 css_theme = 54;
     bool tac_accepted_v120 = 55;
+    bool use_bisq_xmr_wallet = 56;
+    string xmr_user_host = 57;
+    string xmr_host_port = 58;
+    string xmr_rpc_user = 59;
+    string xmr_rpc_pwd = 60;
+    repeated string xmr_hosts = 61;
+    int32 xmr_host_option_ordinal = 62;    
+    bool pay_fee_in_xmr = 63;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

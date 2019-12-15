@@ -52,7 +52,7 @@ import bisq.core.user.User;
 import bisq.core.util.BSFormatter;
 import bisq.core.util.BsqFormatter;
 import bisq.core.util.CoinUtil;
-
+import bisq.core.xmr.XmrCoin;
 import bisq.network.p2p.P2PService;
 
 import bisq.common.UserThread;
@@ -670,6 +670,15 @@ public class GUIUtil {
     }
 
     public static String getPercentage(Coin part, Coin total) {
+        return BSFormatter.formatToPercentWithSymbol((double) part.value / (double) total.value);
+    }
+
+    public static String getPercentageOfTradeAmount(XmrCoin fee, XmrCoin tradeAmount) {
+        return " (" + getPercentage(fee, tradeAmount) +
+                " " + Res.get("guiUtil.ofTradeAmount") + ")";
+    }
+
+    public static String getPercentage(XmrCoin part, XmrCoin total) {
         return BSFormatter.formatToPercentWithSymbol((double) part.value / (double) total.value);
     }
 

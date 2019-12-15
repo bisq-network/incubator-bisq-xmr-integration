@@ -259,7 +259,10 @@ public abstract class Trade implements Tradable, Model {
     // Fields
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    // Persistable
+    public static enum TradeBaseCurrency {BTC, XMR}
+
+
+	// Persistable
     // Immutable
     @Nullable
     @Getter

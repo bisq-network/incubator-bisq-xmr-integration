@@ -41,6 +41,8 @@ import bisq.desktop.components.TextFieldWithIcon;
 import bisq.desktop.components.TitledGroupBg;
 import bisq.desktop.components.TxIdTextField;
 import bisq.desktop.components.WalletAddressTextField;
+import bisq.desktop.components.XmrAddressTextField;
+import bisq.desktop.components.XmrBalanceTextField;
 import bisq.core.locale.Res;
 
 import bisq.common.util.Tuple2;
@@ -1540,6 +1542,20 @@ public class FormBuilder {
         return addressTextField;
     }
 
+    public static XmrAddressTextField addXmrAddressTextField(GridPane gridPane, int rowIndex, String title) {
+        return addXmrAddressTextField(gridPane, rowIndex, title, 0);
+    }
+
+    public static XmrAddressTextField addXmrAddressTextField(GridPane gridPane, int rowIndex, String title, double top) {
+    	XmrAddressTextField addressTextField = new XmrAddressTextField(title);
+        GridPane.setRowIndex(addressTextField, rowIndex);
+        GridPane.setColumnIndex(addressTextField, 0);
+        GridPane.setMargin(addressTextField, new Insets(top + 20, 0, 0, 0));
+        gridPane.getChildren().add(addressTextField);
+
+        return addressTextField;
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Label  + FundsTextField
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -1624,6 +1640,17 @@ public class FormBuilder {
     public static BalanceTextField addBalanceTextField(GridPane gridPane, int rowIndex, String title) {
 
         BalanceTextField balanceTextField = new BalanceTextField(title);
+        GridPane.setRowIndex(balanceTextField, rowIndex);
+        GridPane.setColumnIndex(balanceTextField, 0);
+        GridPane.setMargin(balanceTextField, new Insets(20, 0, 0, 0));
+        gridPane.getChildren().add(balanceTextField);
+
+        return balanceTextField;
+    }
+
+    public static XmrBalanceTextField addXmrBalanceTextField(GridPane gridPane, int rowIndex, String title) {
+
+    	XmrBalanceTextField balanceTextField = new XmrBalanceTextField(title);
         GridPane.setRowIndex(balanceTextField, rowIndex);
         GridPane.setColumnIndex(balanceTextField, 0);
         GridPane.setMargin(balanceTextField, new Insets(20, 0, 0, 0));
@@ -1941,6 +1968,37 @@ public class FormBuilder {
         input.setPromptText(promptText);
 
         Label label = new AutoTooltipLabel(Res.getBaseCurrencyCode());
+        label.getStyleClass().add("input-label");
+
+        HBox box = new HBox();
+        HBox.setHgrow(infoInputTextField, Priority.ALWAYS);
+        infoInputTextField.setMaxWidth(Double.MAX_VALUE);
+        box.getStyleClass().add("input-with-border");
+        box.getChildren().addAll(infoInputTextField, label);
+        return new Tuple3<>(box, infoInputTextField, label);
+    }
+
+    public static Tuple3<HBox, InputTextField, Label> getEditableValueBox(String promptText, String baseCurrencyCode) {
+        InputTextField input = new InputTextField(60);
+        input.setPromptText(promptText);
+
+        Label label = new AutoTooltipLabel(baseCurrencyCode);
+        label.getStyleClass().add("input-label");
+
+        HBox box = new HBox();
+        HBox.setHgrow(input, Priority.ALWAYS);
+        input.setMaxWidth(Double.MAX_VALUE);
+        box.getStyleClass().add("input-with-border");
+        box.getChildren().addAll(input, label);
+        return new Tuple3<>(box, input, label);
+    }
+
+    public static Tuple3<HBox, InfoInputTextField, Label> getEditableValueBoxWithInfo(String promptText, String baseCurrencyCode) {
+        InfoInputTextField infoInputTextField = new InfoInputTextField(60);
+        InputTextField input = infoInputTextField.getInputTextField();
+        input.setPromptText(promptText);
+
+        Label label = new AutoTooltipLabel(baseCurrencyCode);
         label.getStyleClass().add("input-label");
 
         HBox box = new HBox();

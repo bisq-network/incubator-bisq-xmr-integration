@@ -10,6 +10,8 @@ import bisq.core.offer.Offer;
 import bisq.core.offer.OfferPayload;
 import bisq.core.util.BSFormatter;
 import bisq.core.util.ParsingUtils;
+import bisq.core.util.XmrBSFormatter;
+import bisq.core.xmr.XmrCoin;
 
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Monetary;
@@ -229,6 +231,19 @@ public class DisplayUtils {
         return formattedAmount;
     }
 
+    public static String formatAmount(Offer offer,
+                                      int decimalPlaces,
+                                      boolean decimalAligned,
+                                      int maxPlaces,
+                                      XmrBSFormatter bsFormatter) {
+        String formattedAmount = offer.isRange() ? bsFormatter.formatCoin(XmrCoin.fromCoin2XmrCoin(offer.getMinAmount(), offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)), decimalPlaces) + BSFormatter.RANGE_SEPARATOR + bsFormatter.formatCoin(XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)), decimalPlaces) : bsFormatter.formatCoin(XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)), decimalPlaces);
+
+        if (decimalAligned) {
+            formattedAmount = BSFormatter.fillUpPlacesWithEmptyStrings(formattedAmount, maxPlaces);
+        }
+        return formattedAmount;
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Other
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -245,6 +260,19 @@ public class DisplayUtils {
     public static String getFeeWithFiatAmount(Coin makerFeeAsCoin,
                                               Optional<Volume> optionalFeeInFiat,
                                               BSFormatter formatter) {
+        String fee = makerFeeAsCoin != null ? formatter.formatCoinWithCode(makerFeeAsCoin) : Res.get("shared.na");
+        String feeInFiatAsString;
+        if (optionalFeeInFiat != null && optionalFeeInFiat.isPresent()) {
+            feeInFiatAsString = formatVolumeWithCode(optionalFeeInFiat.get());
+        } else {
+            feeInFiatAsString = Res.get("shared.na");
+        }
+        return Res.get("feeOptionWindow.fee", fee, feeInFiatAsString);
+    }
+
+    public static String getFeeWithFiatAmount(XmrCoin makerFeeAsCoin,
+                                              Optional<Volume> optionalFeeInFiat,
+                                              XmrBSFormatter formatter) {
         String fee = makerFeeAsCoin != null ? formatter.formatCoinWithCode(makerFeeAsCoin) : Res.get("shared.na");
         String feeInFiatAsString;
         if (optionalFeeInFiat != null && optionalFeeInFiat.isPresent()) {
@@ -278,6 +306,26 @@ public class DisplayUtils {
     public static boolean hasBtcValidDecimals(String input, BSFormatter bsFormatter) {
         return ParsingUtils.parseToCoin(input, bsFormatter).equals(parseToCoinWith4Decimals(input, bsFormatter));
     }
+    
+    public static XmrCoin parseToCoinWith12Decimals(String input, XmrBSFormatter bsFormatter) {
+        try {
+            return XmrCoin.valueOf(Math.round(new BigDecimal(input).doubleValue() * 1_000_000_000_000l)); //Recalibrate by smallest unit exp=12
+        } catch (Throwable t) {
+            if (input != null && input.length() > 0)
+                log.warn("Exception at parseToCoinWith12Decimals: " + t.toString());
+            return XmrCoin.ZERO;
+        }
+    }
+
+    public static boolean hasXmrValidDecimals(String input, XmrBSFormatter bsFormatter) {
+    	boolean flag = true;
+    	try {
+			new BigDecimal(input);
+		} catch (Exception e) {
+			flag = false;
+		}
+		return flag;
+    }
 
     /**
      * Transform a coin with the properties defined in the format (used to reduce decimal places)
@@ -288,5 +336,9 @@ public class DisplayUtils {
      */
     public static Coin reduceTo4Decimals(Coin coin, BSFormatter bsFormatter) {
         return ParsingUtils.parseToCoin(bsFormatter.formatCoin(coin), bsFormatter);
+    }
+
+    public static XmrCoin reduceTo4Decimals(XmrCoin coin, XmrBSFormatter bsFormatter) {
+        return XmrCoin.parseCoin(bsFormatter.formatCoin(coin, 4));
     }
 }

@@ -151,6 +151,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     private final BooleanProperty useStandbyModeProperty = new SimpleBooleanProperty(prefPayload.isUseStandbyMode());
     @Getter
     private final BooleanProperty useBisqXmrWalletProperty = new SimpleBooleanProperty(prefPayload.isUseBisqXmrWallet());
+    @Getter
+    private final BooleanProperty payFeeInXmrProperty = new SimpleBooleanProperty(prefPayload.isPayFeeInXmr());
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -233,6 +235,11 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         fiatCurrenciesAsObservable.addListener(this::updateTradeCurrencies);
         cryptoCurrenciesAsObservable.addListener(this::updateTradeCurrencies);
+
+        payFeeInXmrProperty.addListener((ov) -> {
+            prefPayload.setPayFeeInXmr(payFeeInXmrProperty.get());
+            persist();
+        });
     }
 
     @Override
@@ -290,6 +297,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         useAnimationsProperty.set(prefPayload.isUseAnimations());
         useStandbyModeProperty.set(prefPayload.isUseStandbyMode());
         useBisqXmrWalletProperty.set(prefPayload.isUseBisqXmrWallet());
+        payFeeInXmrProperty.set(prefPayload.isPayFeeInXmr());
         useCustomWithdrawalTxFeeProperty.set(prefPayload.isUseCustomWithdrawalTxFee());
         withdrawalTxFeeInBytesProperty.set(prefPayload.getWithdrawalTxFeeInBytes());
 
@@ -569,6 +577,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     }
 
     public void setSelectedPaymentAccountForCreateOffer(@Nullable PaymentAccount paymentAccount) {
+    	//TODO(niyid) If prefPayload.isUseBisqXmrWallet() == true set paymentAccount to XMR Wallet generated on-the-fly
         prefPayload.setSelectedPaymentAccountForCreateOffer(paymentAccount);
         persist();
     }
@@ -672,6 +681,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
     public void setUseBisqXmrWallet(boolean useBisqXmrWallet) {
         this.useBisqXmrWalletProperty.set(useBisqXmrWallet);
+    }
+
+    public void setPayFeeInXmr(boolean payFeeInXmr) {
+        this.payFeeInXmrProperty.set(payFeeInXmr);
     }
 
     public void setTakeOfferSelectedPaymentAccountId(String value) {
@@ -1043,6 +1056,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         void setUseStandbyMode(boolean useStandbyMode);
         
         void setUseBisqXmrWallet(boolean useBisqXmrWallet);
+        
+        void setPayFeeInXmr(boolean payFeeInXmr);
 
         void setTakeOfferSelectedPaymentAccountId(String value);
 

@@ -126,8 +126,17 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private double buyerSecurityDepositAsPercentForCrypto = getDefaultBuyerSecurityDepositAsPercent(new CryptoCurrencyAccount());
     private int blockNotifyPort;
     private boolean tacAcceptedV120;
-
-
+    
+    private boolean useBisqXmrWallet = false;
+    private String xmrUserHost = "127.0.0.1";
+    private String xmrHostPort = "29088";
+    @Nullable
+    private String xmrRpcUser;
+    @Nullable
+    private String xmrRpcPwd;
+    private List<String> xmrHosts = new ArrayList<>();
+    private int xmrHostOptionOrdinal;    
+    private boolean payFeeInXmr = false;
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -187,7 +196,15 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 .setIgnoreDustThreshold(ignoreDustThreshold)
                 .setBuyerSecurityDepositAsPercentForCrypto(buyerSecurityDepositAsPercentForCrypto)
                 .setBlockNotifyPort(blockNotifyPort)
-                .setTacAcceptedV120(tacAcceptedV120);
+                .setTacAcceptedV120(tacAcceptedV120)
+                .setUseBisqXmrWallet(useBisqXmrWallet)
+                .setXmrUserHost(xmrUserHost)
+                .setXmrHostPort(xmrHostPort)
+                .setXmrRpcUser(xmrRpcUser)
+                .setXmrRpcPwd(xmrRpcPwd)
+                .addAllXmrHosts(xmrHosts)
+                .setXmrHostOptionOrdinal(xmrHostOptionOrdinal)
+                .setPayFeeInXmr(payFeeInXmr);                
         Optional.ofNullable(backupDirectory).ifPresent(builder::setBackupDirectory);
         Optional.ofNullable(preferredTradeCurrency).ifPresent(e -> builder.setPreferredTradeCurrency((protobuf.TradeCurrency) e.toProtoMessage()));
         Optional.ofNullable(offerBookChartScreenCurrencyCode).ifPresent(builder::setOfferBookChartScreenCurrencyCode);
@@ -274,7 +291,15 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 proto.getIgnoreDustThreshold(),
                 proto.getBuyerSecurityDepositAsPercentForCrypto(),
                 proto.getBlockNotifyPort(),
-                proto.getTacAcceptedV120());
+                proto.getTacAcceptedV120(),
+	            proto.getUseBisqXmrWallet(),
+	            proto.getXmrUserHost(),
+	            proto.getXmrHostPort(),
+	            proto.getXmrRpcUser(),
+	            proto.getXmrRpcPwd(),
+	            proto.getXmrHostsList(),
+	            proto.getXmrHostOptionOrdinal(),
+	            proto.getPayFeeInXmr());
 
     }
 }

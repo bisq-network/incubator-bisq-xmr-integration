@@ -23,7 +23,8 @@ public enum SupportType {
     ARBITRATION, // Need to be at index 0 to be the fall back for old clients
     MEDIATION,
     TRADE,
-    REFUND;
+    REFUND,
+    TRADE_XMR_MULTISIG;
 
     public static SupportType fromProto(
             protobuf.SupportType type) {

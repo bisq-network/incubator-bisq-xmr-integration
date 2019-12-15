@@ -24,7 +24,7 @@ import bisq.core.locale.Res;
 import bisq.core.monetary.Altcoin;
 import bisq.core.monetary.Price;
 import bisq.core.offer.OfferPayload;
-
+import bisq.core.trade.Trade;
 import bisq.network.p2p.NodeAddress;
 
 import bisq.common.util.MathUtils;
@@ -60,7 +60,7 @@ import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 @Singleton
-public class BSFormatter {
+public class BSFormatter implements CoinFormatter {
     public final static String RANGE_SEPARATOR = " - ";
 
     // We don't support localized formatting. Format is always using "." as decimal mark and no grouping separator.
@@ -329,9 +329,9 @@ public class BSFormatter {
 
     public static String getDirectionWithCodeDetailed(OfferPayload.Direction direction, String currencyCode) {
         if (CurrencyUtil.isFiatCurrency(currencyCode))
-            return (direction == OfferPayload.Direction.BUY) ? Res.get("shared.buyingBTCWith", currencyCode) : Res.get("shared.sellingBTCFor", currencyCode);
+            return (direction == OfferPayload.Direction.BUY) ? Res.get("shared.buyingWith", Trade.TradeBaseCurrency.BTC, currencyCode) : Res.get("shared.sellingFor", Trade.TradeBaseCurrency.BTC, currencyCode);
         else
-            return (direction == OfferPayload.Direction.SELL) ? Res.get("shared.buyingCurrency", currencyCode) : Res.get("shared.sellingCurrency", currencyCode);
+            return (direction == OfferPayload.Direction.SELL) ? Res.get("shared.buyingCurrency", currencyCode, Trade.TradeBaseCurrency.BTC) : Res.get("shared.sellingCurrency", currencyCode, Trade.TradeBaseCurrency.BTC);
     }
 
     public static String arbitratorAddressesToString(List<NodeAddress> nodeAddresses) {
@@ -483,4 +483,14 @@ public class BSFormatter {
         else
             return Res.get(translationKey, currencyCode, Res.getBaseCurrencyCode());
     }
+
+	@Override
+	public String formatCoin(Monetary coin) {
+		return formatCoin((Coin) coin);
+	}
+
+	@Override
+	public String formatCoinWithCode(Monetary coin) {
+		return formatCoinWithCode((Coin) coin);
+	}
 }

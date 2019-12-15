@@ -17,6 +17,7 @@
 
 package bisq.desktop.main.offer.offerbook;
 
+import bisq.core.locale.CurrencyUtil;
 import bisq.core.offer.Offer;
 import bisq.core.offer.OfferBookService;
 import bisq.core.trade.TradeManager;
@@ -30,6 +31,7 @@ import javafx.collections.ObservableList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
@@ -112,6 +114,15 @@ public class OfferBook {
             // Investigate why....
             offerBookListItems.clear();
             offerBookListItems.addAll(offerBookService.getOffers().stream()
+            		.filter(new Predicate<>() {
+
+						@Override
+						public boolean test(Offer o) {
+							return CurrencyUtil.isFiatCurrency(o.getCurrencyCode()) ? 
+									"BTC".equals(o.getOfferPayload().getBaseCurrencyCode()) :
+									"BTC".equals(o.getOfferPayload().getCounterCurrencyCode());
+						}
+					})
                     .map(OfferBookListItem::new)
                     .collect(Collectors.toList()));
 

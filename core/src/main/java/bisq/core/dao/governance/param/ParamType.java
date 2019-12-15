@@ -21,6 +21,7 @@ public enum ParamType {
     UNDEFINED,
     BSQ,
     BTC,
+    XMR, //TODO(niyid) For future purposes
     PERCENT,
     BLOCK,
     ADDRESS

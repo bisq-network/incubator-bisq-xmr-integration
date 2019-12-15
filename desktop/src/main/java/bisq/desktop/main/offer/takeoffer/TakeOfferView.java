@@ -53,6 +53,8 @@ import bisq.core.offer.Offer;
 import bisq.core.offer.OfferPayload;
 import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.payload.PaymentMethod;
+import bisq.core.trade.Trade;
+import bisq.core.trade.Trade.TradeBaseCurrency;
 import bisq.core.user.DontShowAgainLookup;
 import bisq.core.util.BSFormatter;
 import bisq.core.util.BsqFormatter;
@@ -926,11 +928,11 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
             Coin takerFee = model.dataModel.getTakerFee(false);
             String missingBsq = null;
             if (takerFee != null) {
-                missingBsq = Res.get("popup.warning.insufficientBsqFundsForBtcFeePayment",
+                missingBsq = Res.get("popup.warning.insufficientBsqFundsForFeePayment", Trade.TradeBaseCurrency.BTC.name(),
                         bsqFormatter.formatCoinWithCode(takerFee.subtract(model.dataModel.getBsqBalance())));
 
             } else if (model.dataModel.getBsqBalance().isZero()) {
-                missingBsq = Res.get("popup.warning.noBsqFundsForBtcFeePayment");
+                missingBsq = Res.get("popup.warning.noBsqFundsForFeePayment");
             }
 
             if (missingBsq != null) {
@@ -1081,7 +1083,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
 
     private void addAmountPriceFields() {
         // amountBox
-        Tuple3<HBox, InputTextField, Label> amountValueCurrencyBoxTuple = getEditableValueBox(Res.get("takeOffer.amount.prompt"));
+        Tuple3<HBox, InputTextField, Label> amountValueCurrencyBoxTuple = getEditableValueBox(Res.get("takeOffer.amount.prompt", Trade.TradeBaseCurrency.BTC));
         amountValueCurrencyBox = amountValueCurrencyBoxTuple.first;
         amountTextField = amountValueCurrencyBoxTuple.second;
         amountCurrency = amountValueCurrencyBoxTuple.third;
@@ -1101,7 +1103,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         priceTextField = priceValueCurrencyBoxTuple.second;
         priceCurrencyLabel = priceValueCurrencyBoxTuple.third;
         Tuple2<Label, VBox> priceInputBoxTuple = getTradeInputBox(priceValueCurrencyBox,
-                Res.get("takeOffer.amountPriceBox.priceDescription"));
+                Res.get("takeOffer.amountPriceBox.priceDescription", Trade.TradeBaseCurrency.BTC));
         priceDescriptionLabel = priceInputBoxTuple.first;
 
         getSmallIconForLabel(MaterialDesignIcon.LOCK, priceDescriptionLabel);
@@ -1224,11 +1226,11 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         Coin takerFee = model.dataModel.getTakerFee(false);
         String message = null;
         if (takerFee != null)
-            message = Res.get("popup.warning.insufficientBsqFundsForBtcFeePayment",
+            message = Res.get("popup.warning.insufficientBsqFundsForFeePayment", Trade.TradeBaseCurrency.BTC.name(),
                     bsqFormatter.formatCoinWithCode(takerFee.subtract(model.dataModel.getBsqBalance())));
 
         else if (model.dataModel.getBsqBalance().isZero())
-            message = Res.get("popup.warning.noBsqFundsForBtcFeePayment");
+            message = Res.get("popup.warning.noBsqFundsForFeePayment");
 
         if (message != null)
             new Popup<>().warning(message)

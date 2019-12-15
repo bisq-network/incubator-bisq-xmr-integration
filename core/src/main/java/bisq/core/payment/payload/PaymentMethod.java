@@ -21,7 +21,7 @@ import bisq.core.locale.CurrencyUtil;
 import bisq.core.locale.Res;
 import bisq.core.locale.TradeCurrency;
 import bisq.core.payment.TradeLimits;
-
+import bisq.core.xmr.XmrCoin;
 import bisq.common.proto.persistable.PersistablePayload;
 
 import org.bitcoinj.core.Coin;
@@ -309,6 +309,11 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         checkNotNull(tradeLimits, "tradeLimits must not be null");
         long maxTradeLimit = tradeLimits.getMaxTradeLimit().value;
         return Coin.valueOf(tradeLimits.getRoundedRiskBasedTradeLimit(maxTradeLimit, riskFactor));
+    }
+
+    public XmrCoin getXmrMaxTradeLimitAsCoin(String currencyCode, double btctoXmrRate) {
+    	Coin coin = getMaxTradeLimitAsCoin(currencyCode);
+    	return XmrCoin.fromCoin2XmrCoin(coin, String.valueOf(btctoXmrRate));
     }
 
     @Override
