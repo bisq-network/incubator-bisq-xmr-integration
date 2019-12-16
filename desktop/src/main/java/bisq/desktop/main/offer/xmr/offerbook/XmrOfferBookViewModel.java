@@ -551,7 +551,7 @@ class XmrOfferBookViewModel extends ActivatableViewModel {
             boolean paymentMethodResult = showAllPaymentMethods ||
                     offer.getPaymentMethod().equals(selectedPaymentMethod);
             boolean notMyOfferOrShowMyOffersActivated = !isMyOffer(offerBookListItem.getOffer()) || preferences.isShowOwnOffersInOfferBook();
-            boolean isXmrBasedOffer = offer.getExtraDataMap().containsKey(OfferPayload.BTC_TO_XMR_RATE);
+            boolean isXmrBasedOffer = offer.getExtraDataMap() != null && offer.getExtraDataMap().containsKey(OfferPayload.BTC_TO_XMR_RATE);
             return directionResult && currencyResult && paymentMethodResult && notMyOfferOrShowMyOffersActivated && isXmrBasedOffer;
         });
     }

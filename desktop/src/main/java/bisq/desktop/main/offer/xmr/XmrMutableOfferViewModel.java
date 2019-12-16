@@ -614,14 +614,14 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
     boolean initWithData(OfferPayload.Direction direction, TradeCurrency tradeCurrency) {
         boolean result = dataModel.initWithData(direction, tradeCurrency);
         //TODO(niyid) PaymentAccount for Monero should natively support XmrCoin
-        double btcToXmrRate = xmrMarketPrice.getPrice(); 
+        double btcToXmrRate = xmrMarketPrice.getPrice() * 10_000.0; 
         if (dataModel.paymentAccount != null) {
         	XmrCoin coinMaxValue = dataModel.paymentAccount.getPaymentMethod().getXmrMaxTradeLimitAsCoin(dataModel.getTradeCurrencyCode().get(), btcToXmrRate);
         	log.info("Validator Max Value => {}", coinMaxValue.toFriendlyString());
             xmrValidator.setMaxValue(coinMaxValue);        	
         }
       //TODO(niyid) For now convert maxTradeLimit from BTC to XMR
-        XmrCoin maxTradeAmount = XmrCoin.valueOf(Math.round(dataModel.getMaxTradeLimit() * 10_000.0 / btcToXmrRate));
+        XmrCoin maxTradeAmount = XmrCoin.fromCoin2XmrCoin(Coin.valueOf(dataModel.getMaxTradeLimit()), String.valueOf(btcToXmrRate));
         log.info("Max Trade Amount => {}", maxTradeAmount.toFriendlyString());
         xmrValidator.setMaxTradeLimit(maxTradeAmount);
         XmrCoin minTradeAmount = XmrRestrictions.getMinTradeAmount(btcToXmrRate);
@@ -696,10 +696,18 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
         dataModel.onPaymentAccountSelected(paymentAccount);
         if (amount.get() != null)
             amountValidationResult.set(isXmrInputValid(amount.get()));
+        
+        double btcToXmrRate = xmrMarketPrice.getPrice() * 10_000.0; 
 
-        xmrValidator.setMaxValue(dataModel.paymentAccount.getPaymentMethod().getXmrMaxTradeLimitAsCoin(dataModel.getTradeCurrencyCode().get(), 1.0 / xmrMarketPrice.getPrice()));
-        xmrValidator.setMaxTradeLimit(XmrCoin.valueOf(Math.round(dataModel.getMaxTradeLimit() * 10_000.0 / xmrMarketPrice.getPrice())));
+        xmrValidator.setMaxValue(dataModel.paymentAccount.getPaymentMethod().getXmrMaxTradeLimitAsCoin(dataModel.getTradeCurrencyCode().get(), btcToXmrRate));
 
+        XmrCoin maxTradeAmount = XmrCoin.fromCoin2XmrCoin(Coin.valueOf(dataModel.getMaxTradeLimit()), String.valueOf(btcToXmrRate));
+
+        xmrValidator.setMaxTradeLimit(maxTradeAmount);
+        
+        XmrCoin minTradeAmount = XmrRestrictions.getMinTradeAmount(btcToXmrRate);
+        
+        xmrValidator.setMinValue(minTradeAmount);
         securityDepositValidator.setPaymentAccount(paymentAccount);
     }
 
@@ -1153,19 +1161,19 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void setAmountToModel() {
-        if (amount.get() != null && !amount.get().isEmpty()) {
-            XmrCoin amount = DisplayUtils.parseToCoinWith12Decimals(this.amount.get(), xmrFormatter);
+        if (this.amount.get() != null && !this.amount.get().isEmpty()) {
+            XmrCoin xmrCoinAmount = DisplayUtils.parseToCoinWith12Decimals(this.amount.get(), xmrFormatter);
 
             long maxTradeLimit = dataModel.getMaxTradeLimit();
             Price price = dataModel.getPrice().get();
             double btcToXmrRate = xmrMarketPrice.getPrice();
             if (price != null) {
                 if (dataModel.isHalCashAccount())
-                    amount = XmrOfferUtil.getAdjustedAmountForHalCash(amount, price, maxTradeLimit, btcToXmrRate);
+                    xmrCoinAmount = XmrOfferUtil.getAdjustedAmountForHalCash(xmrCoinAmount, price, maxTradeLimit, btcToXmrRate);
                 else if (CurrencyUtil.isFiatCurrency(tradeCurrencyCode.get()))
-                    amount = XmrOfferUtil.getRoundedFiatAmount(amount, price, maxTradeLimit, btcToXmrRate);
+                    xmrCoinAmount = XmrOfferUtil.getRoundedFiatAmount(xmrCoinAmount, price, maxTradeLimit, btcToXmrRate);
             }
-            dataModel.setAmount(amount);
+            dataModel.setAmount(xmrCoinAmount);
             if (syncMinAmountWithAmount ||
                     dataModel.getMinAmount().get() == null ||
                     dataModel.getMinAmount().get().equals(XmrCoin.ZERO)) {

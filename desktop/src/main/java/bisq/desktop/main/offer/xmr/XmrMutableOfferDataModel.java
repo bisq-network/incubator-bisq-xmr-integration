@@ -693,10 +693,10 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
                 !price.get().isZero() &&
                 allowAmountUpdate) {
             try {
-            	//TODO(niyid) This was the problem
-//                XmrCoin value = DisplayUtils.reduceTo4Decimals(XmrCoin.fromCoin2XmrCoin(price.get().getAmountByVolume(volume.get()), String.valueOf(xmrMarketPrice.getPrice())), xmrFormatter);
             	btcToXmrRate = xmrMarketPrice.getPrice();
-                XmrCoin value = DisplayUtils.reduceTo4Decimals(XmrCoin.fromCoinValue(price.get().getAmountByVolume(volume.get()).value), xmrFormatter);
+            	
+            	long coinValueToCalculate = price.get().getAmountByVolume(volume.get()).value;
+            	XmrCoin value = amount.get();
                 if (isHalCashAccount())
                     value = XmrOfferUtil.getAdjustedAmountForHalCash(value, price.get(), getMaxTradeLimit(), btcToXmrRate);
                 else if (CurrencyUtil.isFiatCurrency(tradeCurrencyCode.get()))
