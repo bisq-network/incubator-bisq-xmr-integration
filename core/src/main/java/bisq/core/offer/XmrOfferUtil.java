@@ -330,7 +330,8 @@ public class XmrOfferUtil {
                                                             BsqFormatter bsqFormatter) {
     	MarketPrice xmrMarketPrice = priceFeedService.getMarketPrice("XMR");
     	MarketPrice bsqMarketPrice = priceFeedService.getMarketPrice("BSQ");
-    	double bsqToXmrRate = bsqMarketPrice.getPrice() / xmrMarketPrice.getPrice();
+
+      double bsqToXmrRate = bsqMarketPrice.getPrice() / xmrMarketPrice.getPrice();
     	Coin makerFee = XmrCoin.fromXmrCoin2Coin(xmrMakerFee, "BSQ", String.valueOf(bsqToXmrRate));
         String countryCode = preferences.getUserCountry().code;
         String userCurrencyCode = CurrencyUtil.getCurrencyByCountryCode(countryCode).getCode();

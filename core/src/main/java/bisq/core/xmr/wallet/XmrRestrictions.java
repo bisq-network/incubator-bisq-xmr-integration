@@ -46,8 +46,8 @@ public class XmrRestrictions {
     public static XmrCoin getMinTradeAmount(double xmrToBtcRate) {
 //    	Coin coin = Restrictions.getMinTradeAmount();
 //    	return XmrCoin.fromCoin2XmrCoin(coin, String.valueOf(xmrToBtcRate));
-    	BigDecimal minTradeAmount = new BigDecimal(xmrToBtcRate).movePointRight(12);
-    	return XmrCoin.valueOf(minTradeAmount.longValue());
+    	  BigDecimal minTradeAmount = new BigDecimal(xmrToBtcRate).movePointRight(12);
+    	  return XmrCoin.valueOf(minTradeAmount.longValue());
     }
 
     public static double getDefaultBuyerSecurityDepositAsPercent(@Nullable PaymentAccount paymentAccount) {

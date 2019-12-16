@@ -100,6 +100,7 @@ public class Xmr2Validator extends NumberValidator {
 
         return coin;
     }
+  
     protected ValidationResult validateIfAboveDust(String input) {
         try {
         	double btcToXmrRate = xmrMarketPrice.getPrice();
