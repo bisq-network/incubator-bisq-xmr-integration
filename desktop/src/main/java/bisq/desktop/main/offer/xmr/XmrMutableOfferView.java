@@ -393,7 +393,7 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
         String message = null;
         if (makerFee != null) {
         	Coin requiredBsqAmount = makerFee.subtract(model.getDataModel().getBsqBalance());
-        	double bsqToXmrRate = model.xmrMarketPrice.getPrice() / model.bsqMarketPrice.getPrice();
+        	double bsqToXmrRate = model.bsqMarketPrice.getPrice() / model.xmrMarketPrice.getPrice();
         	XmrCoin requiredBsqAmountInXmr = XmrCoin.fromCoin2XmrCoin(requiredBsqAmount, String.valueOf(bsqToXmrRate));
             message = Res.get("popup.warning.insufficientBsqFundsForXmrFeePayment", "BSQ",
                     bsqFormatter.formatCoinWithCode(requiredBsqAmount),
@@ -1120,11 +1120,12 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
             String missingBsq = null;
             if (makerFee != null) {
             	Coin requiredBsqAmount = makerFee.subtract(model.getDataModel().getBsqBalance());
-            	requiredBsqAmount = requiredBsqAmount.isNegative() ? requiredBsqAmount.negate() : requiredBsqAmount;
-            	double bsqToXmrRate = model.xmrMarketPrice.getPrice() / model.bsqMarketPrice.getPrice();
+            	makerFee = requiredBsqAmount.isNegative() ? makerFee.negate() : makerFee;
+            	double bsqToXmrRate = model.bsqMarketPrice.getPrice() / model.xmrMarketPrice.getPrice();
             	XmrCoin requiredBsqAmountInXmr = XmrCoin.fromCoin2XmrCoin(requiredBsqAmount, String.valueOf(bsqToXmrRate));
+            	log.info("showFeeOption: BSQ => {}, XMR => {}, Rate => {}, Balance => {}", requiredBsqAmount.toFriendlyString(), requiredBsqAmountInXmr.toFriendlyString(), bsqToXmrRate, model.getDataModel().getBsqBalance());
                 missingBsq = Res.get("popup.warning.insufficientBsqFundsForXmrFeePayment", "BSQ",
-                        bsqFormatter.formatCoinWithCode(requiredBsqAmount),
+                		requiredBsqAmount.toFriendlyString().replace("BTC", "BSQ"),//Hack switching to right currency
                         xmrFormatter.formatCoinWithCode(requiredBsqAmountInXmr));
 
             } else if (model.getDataModel().getBsqBalance().isZero()) {

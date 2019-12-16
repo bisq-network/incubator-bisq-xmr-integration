@@ -22,6 +22,8 @@ import bisq.core.payment.PaymentAccount;
 import bisq.core.payment.PaymentAccountUtil;
 import bisq.core.xmr.XmrCoin;
 
+import java.math.BigDecimal;
+
 import javax.annotation.Nullable;
 
 import org.bitcoinj.core.Coin;
@@ -42,8 +44,10 @@ public class XmrRestrictions {
     }
 
     public static XmrCoin getMinTradeAmount(double xmrToBtcRate) {
-    	Coin coin = Restrictions.getMinTradeAmount();
-    	return XmrCoin.fromCoin2XmrCoin(coin, String.valueOf(xmrToBtcRate));
+//    	Coin coin = Restrictions.getMinTradeAmount();
+//    	return XmrCoin.fromCoin2XmrCoin(coin, String.valueOf(xmrToBtcRate));
+    	  BigDecimal minTradeAmount = new BigDecimal(xmrToBtcRate).movePointRight(12);
+    	  return XmrCoin.valueOf(minTradeAmount.longValue());
     }
 
     public static double getDefaultBuyerSecurityDepositAsPercent(@Nullable PaymentAccount paymentAccount) {

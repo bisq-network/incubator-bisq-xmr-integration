@@ -119,7 +119,7 @@ public class XmrOfferBook {
             // Investigate why....
             offerBookListItems.clear();
             offerBookListItems.addAll(offerBookService.getOffers().stream()
-            		.filter(o -> o.getExtraDataMap().containsKey(OfferPayload.XMR_TO_BTC_RATE))
+            		.filter(o -> o.getExtraDataMap().containsKey(OfferPayload.BTC_TO_XMR_RATE))
                     .map(XmrOfferBookListItem::new)
                     .collect(Collectors.toList()));
 

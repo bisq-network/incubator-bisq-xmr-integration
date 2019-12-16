@@ -21,11 +21,13 @@ import bisq.desktop.common.model.ActivatableDataModel;
 
 import bisq.core.xmr.wallet.XmrWalletRpcWrapper;
 
+import org.bitcoinj.core.Coin;
 import org.bitcoinj.wallet.Wallet.BalanceType;
 
 import bisq.core.btc.wallet.BsqWalletService;
 import bisq.core.provider.price.MarketPrice;
 import bisq.core.provider.price.PriceFeedService;
+import bisq.core.util.BsqFormatter;
 import bisq.core.xmr.XmrCoin;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
@@ -62,27 +64,31 @@ public abstract class XmrOfferDataModel extends ActivatableDataModel {
     protected final PriceFeedService priceFeedService;
     protected double bsqToXmrRate;
     protected double btcToXmrRate;
-    
+    private BsqFormatter bsqFormatter;
 
-    public XmrOfferDataModel(BsqWalletService bsqWalletService, XmrWalletRpcWrapper xmrWalletWrapper, PriceFeedService priceFeedService) {
+    public XmrOfferDataModel(BsqWalletService bsqWalletService, XmrWalletRpcWrapper xmrWalletWrapper, PriceFeedService priceFeedService, BsqFormatter bsqFormatter) {
         this.bsqWalletService = bsqWalletService;
         this.xmrWalletWrapper = xmrWalletWrapper;
         this.priceFeedService = priceFeedService;
+        this.bsqFormatter = bsqFormatter;
+        updateRateAndBalance();
+    }
+    
+    private void updateRateAndBalance() {
         xmrMarketPrice = priceFeedService.getMarketPrice("XMR");
         bsqMarketPrice = priceFeedService.getMarketPrice("BSQ");
+        bsqToXmrRate = bsqMarketPrice.getPrice() / xmrMarketPrice.getPrice();
+        Coin bsqBalance = bsqWalletService.getAvailableConfirmedBalance();
+        totalAvailableBalance = XmrCoin.fromCoin2XmrCoin(bsqBalance, String.valueOf(bsqToXmrRate));
+//        log.info("Trade Wallet Balance => {} ({}) Rate={}", totalAvailableBalance.toFriendlyString(), bsqFormatter.formatAmountWithGroupSeparatorAndCode(bsqBalance), bsqToXmrRate);
     }
 
     protected void updateBalance() {
     	if(bsqWalletService != null) {
-            xmrMarketPrice = priceFeedService.getMarketPrice("XMR");
-            bsqMarketPrice = priceFeedService.getMarketPrice("BSQ");
-            btcToXmrRate = xmrMarketPrice.getPrice();
-            bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
-            XmrCoin tradeWalletBalance = XmrCoin.fromCoin2XmrCoin(bsqWalletService.getAvailableConfirmedBalance(), String.valueOf(bsqToXmrRate));
+    		updateRateAndBalance();
             if (useSavingsWallet) {
-            	// savingWallet is BSQ wallet       	
-                XmrCoin savingWalletBalance = XmrCoin.fromCoin2XmrCoin(bsqWalletService.getBalance(BalanceType.AVAILABLE_SPENDABLE), String.valueOf(bsqToXmrRate));
-                totalAvailableBalance = savingWalletBalance.add(tradeWalletBalance);
+//            	// savingWallet is BSQ wallet       	
+//                XmrCoin savingWalletBalance = XmrCoin.fromCoin2XmrCoin(bsqWalletService.getBalance(BalanceType.AVAILABLE_SPENDABLE), String.valueOf(bsqToXmrRate));
                 if (totalToPayAsCoin.get() != null) {
                     if (totalAvailableBalance.compareTo(totalToPayAsCoin.get()) > 0)
                         balance.set(totalToPayAsCoin.get());
@@ -90,9 +96,9 @@ public abstract class XmrOfferDataModel extends ActivatableDataModel {
                         balance.set(totalAvailableBalance);
                 }
             } else {
-                balance.set(tradeWalletBalance);
+                balance.set(totalAvailableBalance);
             }
-            balance.set(tradeWalletBalance);
+            balance.set(totalAvailableBalance);
             if (totalToPayAsCoin.get() != null) {
                 missingCoin.set(totalToPayAsCoin.get().subtract(balance.get()));
                 if (missingCoin.get().isNegative())

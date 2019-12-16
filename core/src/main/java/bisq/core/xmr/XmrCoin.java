@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -38,6 +40,8 @@ public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializabl
      * constants derive from it.
      */
     public static final int SMALLEST_UNIT_EXPONENT = 12;
+    
+    public static MathContext MATH_CONTEXT = new MathContext(SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN);
 
     /**
      * The number of satoshis equal to one Monero.
@@ -131,9 +135,10 @@ public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializabl
      *
      * @throws IllegalArgumentException if you try to specify fractional satoshis, or a value out of range.
      */
-    public static XmrCoin parseCoin(final String str) {
+    //Careful with calls that may cause recursion
+    public static XmrCoin parseCoin(final String str) throws Exception {
         try {
-            long satoshis = new BigDecimal(str).movePointRight(SMALLEST_UNIT_EXPONENT).toBigIntegerExact().longValue();
+            long satoshis = new BigDecimal(str).movePointRight(SMALLEST_UNIT_EXPONENT).round(new MathContext(str.length() + SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN)).longValue();
             return XmrCoin.valueOf(satoshis);
         } catch (ArithmeticException e) {
             throw new IllegalArgumentException(e); // Repackage exception to honor method contract
@@ -263,12 +268,18 @@ public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializabl
 
     private static final XmrMonetaryFormat FRIENDLY_FORMAT = XmrMonetaryFormat.XMR.minDecimals(2).repeatOptionalDecimals(1, 10).postfixCode();
 
+    private static final XmrMonetaryFormat FRIENDLY_FORMAT_NO_CODE = XmrMonetaryFormat.XMR.minDecimals(2).repeatOptionalDecimals(1, 10).noCode();
+
     /**
      * Returns the value as a 0.12 type string. More digits after the decimal place will be used
      * if necessary, but two will always be present.
      */
     public String toFriendlyString() {
         return FRIENDLY_FORMAT.format(this).toString();
+    }
+
+    public String toFriendlyStringNoCode() {
+        return FRIENDLY_FORMAT_NO_CODE.format(this).toString();
     }
 
     private static final XmrMonetaryFormat PLAIN_FORMAT = XmrMonetaryFormat.XMR.minDecimals(0).repeatOptionalDecimals(1, 12).noCode();
@@ -306,39 +317,58 @@ public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializabl
         return Longs.compare(this.value, other.value);
     }
     
+    private static BigDecimal obtainRateAsBigDecimal(String xmrConversionRateAsString) {
+    	BigDecimal rate = BigDecimal.ONE;
+    	try {
+        	rate = new BigDecimal(xmrConversionRateAsString);
+    	} catch (Exception e) {
+    		log.error("Exception occurred: {}", xmrConversionRateAsString);
+		}
+    	
+    	return rate;
+    }
     /**
      * 
      * @param coin
-     * @param price
+     * @param xmrConversionRateAsString
      * @return
      */
-    public static XmrCoin fromCoin2XmrCoin(Coin coin, String price) {
-    	double rate = 1;
+    public static XmrCoin fromCoin2XmrCoin(Coin coin, String xmrConversionRateAsString) {
+    	BigDecimal rate = obtainRateAsBigDecimal(xmrConversionRateAsString);
     	coin = coin != null ? coin : Coin.ZERO;
-    	try {
-        	rate = Double.parseDouble(price);
-    	} catch (Exception e) {
-    		log.error("Exception occurred: {}, {}", price, coin.getValue());
-		}
-    	return XmrCoin.valueOf(Math.round((coin.getValue() * 10_000) * rate)); //Recalibrate by 12 - 8 = 4
+    	BigDecimal coinBigDecimal = new BigDecimal(coin.getValue());
+    	coinBigDecimal = coinBigDecimal.movePointRight(4);
+    	BigDecimal xmrCoinBigDecimal = coinBigDecimal.multiply(rate, MATH_CONTEXT);
+    	return XmrCoin.valueOf(xmrCoinBigDecimal.round(new MathContext(xmrCoinBigDecimal.precision() + SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN)).longValue());
     }
     
     /**
      * 
      * @param coin
-     * @param currencyCode For now, this is just a label that describes the relationship between the coin and the price
-     * @param price
+     * @param currencyCode For now, this is just a label that describes the relationship between the coin and the xmrConversionRateAsString
+     * @param xmrConversionRateAsString
      * @return
      */
-    public static Coin fromXmrCoin2Coin(XmrCoin coin, String currencyCode, String price) {
-    	double rate = 1;
+    public static Coin fromXmrCoin2Coin(XmrCoin coin, String currencyCode, String xmrConversionRateAsString) {
+    	BigDecimal rate = obtainRateAsBigDecimal(xmrConversionRateAsString);
     	coin = coin != null ? coin : XmrCoin.ZERO;
-    	try {
-        	rate = Double.parseDouble(price);
-    	} catch (Exception e) {
-    		e.printStackTrace();
-		}
-    	return Coin.valueOf(Math.round(coin.getValue() / (10_000 * rate))); //Recalibrate by 12 - 8 = 4
+    	BigDecimal coinBigDecimal = new BigDecimal(coin.getValue());
+    	coinBigDecimal = coinBigDecimal.movePointLeft(4);
+    	BigDecimal xmrCoinBigDecimal = coinBigDecimal.divide(rate, MATH_CONTEXT);
+    	return Coin.valueOf(xmrCoinBigDecimal.round(new MathContext(xmrCoinBigDecimal.precision() + SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN)).longValue());
+    }
+
+    public static Monetary convertMonetary(Monetary coin, String xmrConversionRateAsString) {
+    	BigDecimal rate = obtainRateAsBigDecimal(xmrConversionRateAsString);
+    	coin = coin != null ? coin : Coin.ZERO;
+    	BigDecimal coinBigDecimal = new BigDecimal(coin.getValue());
+    	coinBigDecimal = coin instanceof Coin ? coinBigDecimal.movePointRight(4) : coinBigDecimal.movePointLeft(4);
+    	BigDecimal xmrCoinBigDecimal = coinBigDecimal.multiply(rate, MATH_CONTEXT);
+    	
+    	Monetary returnValue = null;
+    	returnValue = coin instanceof Coin ? XmrCoin.valueOf(xmrCoinBigDecimal.round(new MathContext(xmrCoinBigDecimal.precision() + SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN)).longValue()) :
+    		Coin.valueOf(xmrCoinBigDecimal.round(new MathContext(xmrCoinBigDecimal.precision() + SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN)).longValue());
+    	return returnValue;
     }
     
     /**
@@ -347,7 +377,7 @@ public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializabl
      * @return
      */
     public static XmrCoin fromCoinValue(long coinAsLong) {
-    	return XmrCoin.valueOf(coinAsLong * 10_000); //Coin has smallest unit exp=8; XmrCoin has smallest unit exp=12. Recalibrate by 12 - 8 = 4
+    	return XmrCoin.valueOf(new BigDecimal(coinAsLong).movePointRight(4).round(new MathContext(String.valueOf(coinAsLong).length() + SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN)).longValue()); //Coin has smallest unit exp=8; XmrCoin has smallest unit exp=12. Recalibrate by 12 - 8 = 4
     }
     
     /**
@@ -356,6 +386,6 @@ public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializabl
      * @return
      */
     public static Coin fromXmrCoinValue(long xmrCoinAsLong) {
-    	return Coin.valueOf(Math.round(xmrCoinAsLong / 10_000)); //Coin has smallest unit exp=8; XmrCoin has smallest unit exp=12. Recalibrate by 12 - 8 = 4
+    	return Coin.valueOf(new BigDecimal(xmrCoinAsLong).movePointLeft(4).round(new MathContext(String.valueOf(xmrCoinAsLong).length() + SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN)).longValue()); //Coin has smallest unit exp=8; XmrCoin has smallest unit exp=12. Recalibrate by 12 - 8 = 4
     }
 }

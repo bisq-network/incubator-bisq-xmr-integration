@@ -63,7 +63,7 @@ public class Xmr2Validator extends NumberValidator {
         this.formatter = formatter;
         this.priceFeedService = priceFeedService;
         
-        setMaxValue(XmrCoin.parseCoin("1000"));
+        setMaxValue(XmrCoin.valueOf(1000_000_000_000_000l));
         xmrMarketPrice = priceFeedService.getMarketPrice("XMR");
     }
 
@@ -93,10 +93,18 @@ public class Xmr2Validator extends NumberValidator {
     	this.maxValue = maxValue;
     }
 
+    private XmrCoin convertInputToXmrCoin(String input) {
+        BigDecimal bd = new BigDecimal(input);
+        final BigDecimal bigDecimalValue = bd.movePointRight(XmrCoin.SMALLEST_UNIT_EXPONENT);
+        final XmrCoin coin = XmrCoin.valueOf(bigDecimalValue.longValue());
+
+        return coin;
+    }
+  
     protected ValidationResult validateIfAboveDust(String input) {
         try {
         	double btcToXmrRate = xmrMarketPrice.getPrice();
-            final XmrCoin coin = XmrCoin.parseCoin(input);
+        	XmrCoin coin = convertInputToXmrCoin(input);
             if (XmrRestrictions.isAboveDust(coin, btcToXmrRate))
                 return new ValidationResult(true);
             else
@@ -110,7 +118,7 @@ public class Xmr2Validator extends NumberValidator {
     protected ValidationResult validateIfNotFractionalXmrValue(String input) {
         try {
             BigDecimal bd = new BigDecimal(input);
-            final BigDecimal satoshis = bd.movePointRight(12);
+            final BigDecimal satoshis = bd.movePointRight(XmrCoin.SMALLEST_UNIT_EXPONENT);
             if (satoshis.scale() > 0)
                 return new ValidationResult(false, Res.get("validation.xmr.fraction"));
             else
@@ -122,7 +130,7 @@ public class Xmr2Validator extends NumberValidator {
 
     protected ValidationResult validateIfNotExceedsMaxXmrValue(String input) {
         try {
-            final XmrCoin coin = XmrCoin.parseCoin(input);
+        	final XmrCoin coin = convertInputToXmrCoin(input);
             if (maxValue != null && coin.compareTo(maxValue) > 0) {
                 return new ValidationResult(false, Res.get("validation.xmr.toLarge", formatter.formatCoinWithCode(maxValue)));
             } else {
@@ -135,7 +143,7 @@ public class Xmr2Validator extends NumberValidator {
 
     protected ValidationResult validateIfNotExceedsMaxTradeLimit(String input) {
         try {
-            final XmrCoin coin = XmrCoin.parseCoin(input);
+        	final XmrCoin coin = convertInputToXmrCoin(input);
             if (maxTradeLimit != null && coin.compareTo(maxTradeLimit) > 0)
                 return new ValidationResult(false, Res.get("validation.xmr.exceedsMaxTradeLimit", formatter.formatCoinWithCode(maxTradeLimit)));
             else
@@ -147,7 +155,7 @@ public class Xmr2Validator extends NumberValidator {
 
     protected ValidationResult validateIfNotUnderMinValue(String input) {
         try {
-            final XmrCoin coin = XmrCoin.parseCoin(input);
+        	final XmrCoin coin = convertInputToXmrCoin(input);
             if (minValue != null && coin.compareTo(minValue) < 0)
                 return new ValidationResult(false, Res.get("validation.xmr.toSmall", formatter.formatCoinWithCode(minValue)));
             else

@@ -84,9 +84,9 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     // of the offer supports both capabilities we add "11, 12" to capabilities.
     public static final String CAPABILITIES = "capabilities";
 
-    public static final String XMR_TO_BTC_RATE = "xmrToBtcRate";
+    public static final String BTC_TO_XMR_RATE = "BTCXMR";
 
-    public static final String XMR_TO_BSQ_RATE = "xmrToBsqRate";
+    public static final String BSQ_TO_XMR_RATE = "BSQXMR";
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Instance fields

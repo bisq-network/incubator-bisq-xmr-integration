@@ -311,9 +311,9 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
         return Coin.valueOf(tradeLimits.getRoundedRiskBasedTradeLimit(maxTradeLimit, riskFactor));
     }
 
-    public XmrCoin getXmrMaxTradeLimitAsCoin(String currencyCode, double btctoXmrRate) {
+    public XmrCoin getXmrMaxTradeLimitAsCoin(String currencyCode, double btcToXmrRate) {
     	Coin coin = getMaxTradeLimitAsCoin(currencyCode);
-    	return XmrCoin.fromCoin2XmrCoin(coin, String.valueOf(btctoXmrRate));
+    	return XmrCoin.fromCoin2XmrCoin(coin, String.valueOf(btcToXmrRate));
     }
 
     @Override

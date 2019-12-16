@@ -24,7 +24,8 @@ import org.apache.commons.lang3.time.DurationFormatUtils;
 import java.text.DateFormat;
 
 import java.math.BigDecimal;
-
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.Date;
 import java.util.Optional;
 
@@ -236,7 +237,7 @@ public class DisplayUtils {
                                       boolean decimalAligned,
                                       int maxPlaces,
                                       XmrBSFormatter bsFormatter) {
-        String formattedAmount = offer.isRange() ? bsFormatter.formatCoin(XmrCoin.fromCoin2XmrCoin(offer.getMinAmount(), offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)), decimalPlaces) + BSFormatter.RANGE_SEPARATOR + bsFormatter.formatCoin(XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)), decimalPlaces) : bsFormatter.formatCoin(XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.XMR_TO_BTC_RATE)), decimalPlaces);
+        String formattedAmount = offer.isRange() ? bsFormatter.formatCoin(XmrCoin.fromCoin2XmrCoin(offer.getMinAmount(), offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)), decimalPlaces) + BSFormatter.RANGE_SEPARATOR + bsFormatter.formatCoin(XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)), decimalPlaces) : bsFormatter.formatCoin(XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)), decimalPlaces);
 
         if (decimalAligned) {
             formattedAmount = BSFormatter.fillUpPlacesWithEmptyStrings(formattedAmount, maxPlaces);
@@ -309,7 +310,8 @@ public class DisplayUtils {
     
     public static XmrCoin parseToCoinWith12Decimals(String input, XmrBSFormatter bsFormatter) {
         try {
-            return XmrCoin.valueOf(Math.round(new BigDecimal(input).doubleValue() * 1_000_000_000_000l)); //Recalibrate by smallest unit exp=12
+        	BigDecimal bigDecimalInputValue = new BigDecimal(input).movePointRight(XmrCoin.SMALLEST_UNIT_EXPONENT).setScale(XmrCoin.SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN);
+            return XmrCoin.valueOf(bigDecimalInputValue.longValue()); //Recalibrate by smallest unit exp=12
         } catch (Throwable t) {
             if (input != null && input.length() > 0)
                 log.warn("Exception at parseToCoinWith12Decimals: " + t.toString());
@@ -338,7 +340,8 @@ public class DisplayUtils {
         return ParsingUtils.parseToCoin(bsFormatter.formatCoin(coin), bsFormatter);
     }
 
-    public static XmrCoin reduceTo4Decimals(XmrCoin coin, XmrBSFormatter bsFormatter) {
-        return XmrCoin.parseCoin(bsFormatter.formatCoin(coin, 4));
+    public static XmrCoin reduceTo4Decimals(XmrCoin coin, XmrBSFormatter bsFormatter) throws Exception {
+    	BigDecimal bigDecimalInputValue = new BigDecimal(coin.value).setScale(4, RoundingMode.UP);
+        return XmrCoin.valueOf(bigDecimalInputValue.longValue());
     }
 }

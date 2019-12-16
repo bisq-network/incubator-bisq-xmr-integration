@@ -180,7 +180,7 @@ public class XmrBSFormatter implements CoinFormatter {
                     formattedCoin = coinFormat.noCode().minDecimals(decimalPlaces).repeatOptionalDecimals(1, decimalPlaces).format(coin).toString();
                 }
             } catch (Throwable t) {
-                log.warn("Exception at formatBtc: " + t.toString());
+                log.warn("Exception at formatCoin: " + t.toString());
             }
         }
 
