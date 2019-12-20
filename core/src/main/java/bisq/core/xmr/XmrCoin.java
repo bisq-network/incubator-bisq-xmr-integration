@@ -320,7 +320,7 @@ public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializabl
     private static BigDecimal obtainRateAsBigDecimal(String xmrConversionRateAsString) {
     	BigDecimal rate = BigDecimal.ONE;
     	try {
-        	rate = new BigDecimal(xmrConversionRateAsString);
+        	rate = rate.divide(new BigDecimal(xmrConversionRateAsString), MATH_CONTEXT);
     	} catch (Exception e) {
     		log.error("Exception occurred: {}", xmrConversionRateAsString);
 		}
@@ -337,55 +337,26 @@ public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializabl
     	BigDecimal rate = obtainRateAsBigDecimal(xmrConversionRateAsString);
     	coin = coin != null ? coin : Coin.ZERO;
     	BigDecimal coinBigDecimal = new BigDecimal(coin.getValue());
-    	coinBigDecimal = coinBigDecimal.movePointRight(4);
     	BigDecimal xmrCoinBigDecimal = coinBigDecimal.multiply(rate, MATH_CONTEXT);
-    	return XmrCoin.valueOf(xmrCoinBigDecimal.round(new MathContext(xmrCoinBigDecimal.precision() + SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN)).longValue());
+    	BigDecimal rounded = xmrCoinBigDecimal.multiply(new BigDecimal(10_000)).round(new MathContext(SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN));
+    	
+    	return XmrCoin.valueOf(rounded.longValue());
     }
     
     /**
      * 
      * @param coin
-     * @param currencyCode For now, this is just a label that describes the relationship between the coin and the xmrConversionRateAsString
+     * @param currencyCode
      * @param xmrConversionRateAsString
      * @return
      */
     public static Coin fromXmrCoin2Coin(XmrCoin coin, String currencyCode, String xmrConversionRateAsString) {
     	BigDecimal rate = obtainRateAsBigDecimal(xmrConversionRateAsString);
     	coin = coin != null ? coin : XmrCoin.ZERO;
-    	BigDecimal coinBigDecimal = new BigDecimal(coin.getValue());
-    	coinBigDecimal = coinBigDecimal.movePointLeft(4);
-    	BigDecimal xmrCoinBigDecimal = coinBigDecimal.divide(rate, MATH_CONTEXT);
-    	return Coin.valueOf(xmrCoinBigDecimal.round(new MathContext(xmrCoinBigDecimal.precision() + SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN)).longValue());
-    }
-
-    public static Monetary convertMonetary(Monetary coin, String xmrConversionRateAsString) {
-    	BigDecimal rate = obtainRateAsBigDecimal(xmrConversionRateAsString);
-    	coin = coin != null ? coin : Coin.ZERO;
-    	BigDecimal coinBigDecimal = new BigDecimal(coin.getValue());
-    	coinBigDecimal = coin instanceof Coin ? coinBigDecimal.movePointRight(4) : coinBigDecimal.movePointLeft(4);
-    	BigDecimal xmrCoinBigDecimal = coinBigDecimal.multiply(rate, MATH_CONTEXT);
-    	
-    	Monetary returnValue = null;
-    	returnValue = coin instanceof Coin ? XmrCoin.valueOf(xmrCoinBigDecimal.round(new MathContext(xmrCoinBigDecimal.precision() + SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN)).longValue()) :
-    		Coin.valueOf(xmrCoinBigDecimal.round(new MathContext(xmrCoinBigDecimal.precision() + SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN)).longValue());
-    	return returnValue;
-    }
-    
-    /**
-     * 
-     * @param coinAsLong
-     * @return
-     */
-    public static XmrCoin fromCoinValue(long coinAsLong) {
-    	return XmrCoin.valueOf(new BigDecimal(coinAsLong).movePointRight(4).round(new MathContext(String.valueOf(coinAsLong).length() + SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN)).longValue()); //Coin has smallest unit exp=8; XmrCoin has smallest unit exp=12. Recalibrate by 12 - 8 = 4
-    }
-    
-    /**
-     * 
-     * @param xmrCoinAsLong
-     * @return
-     */
-    public static Coin fromXmrCoinValue(long xmrCoinAsLong) {
-    	return Coin.valueOf(new BigDecimal(xmrCoinAsLong).movePointLeft(4).round(new MathContext(String.valueOf(xmrCoinAsLong).length() + SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN)).longValue()); //Coin has smallest unit exp=8; XmrCoin has smallest unit exp=12. Recalibrate by 12 - 8 = 4
+    	BigDecimal xmrCoinBigDecimal = new BigDecimal(coin.getValue());
+    	BigDecimal coinBigDecimal = xmrCoinBigDecimal.divide(rate, MATH_CONTEXT);
+    	BigDecimal bsqFactor = "BSQ".equals(currencyCode) ? new BigDecimal(0.000_001) : BigDecimal.ONE;//For BSQ, the scale/precision must be adjusted
+    	BigDecimal rounded = coinBigDecimal.multiply(bsqFactor).multiply(new BigDecimal(0.00_001)).round(new MathContext(Coin.SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN));
+    	return Coin.valueOf(rounded.longValue());
     }
 }
