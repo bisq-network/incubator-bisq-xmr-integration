@@ -672,7 +672,7 @@ public class XmrOfferBookView extends ActivatableViewAndModel<GridPane, XmrOffer
                             public void updateItem(final XmrOfferBookListItem item, boolean empty) {
                                 super.updateItem(item, empty);
                                 if (item != null && !empty)
-                                	//TODO(niyid) retrieve BTC -> XMR conversion from offer.extraDataMap.get(BTC_TO_XMR_RATE='xmrToBtcRate')
+                                	//TODO(niyid) retrieve BTC -> XMR conversion from offer.extraDataMap.get(BTC_TO_XMR_RATE='btcToXmrRate')
                                     setGraphic(new ColoredDecimalPlacesWithZerosText(model.getAmount(item), GUIUtil.AMOUNT_DECIMALS_WITH_ZEROS));
                                 else
                                     setGraphic(null);

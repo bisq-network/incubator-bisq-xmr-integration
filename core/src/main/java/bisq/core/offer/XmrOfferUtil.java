@@ -46,6 +46,7 @@ import org.bitcoinj.utils.Fiat;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
@@ -82,29 +83,15 @@ public class XmrOfferUtil {
     /**
      * Returns the makerFee as XmrCoin, this can be priced in XMR or BSQ.
      *
-     * @param xmrWalletRpcWrapper
-     * @param preferences          preferences are used to see if the user indicated a preference for paying fees in BTC
-     * @param amount
-     * @return
-     */
-    @Nullable
-    public static XmrCoin getMakerFee(XmrWalletRpcWrapper xmrWalletRpcWrapper, Preferences preferences, XmrCoin amount, String xmrConversionRateAsString) {
-        boolean isCurrencyForMakerFeeXmr = isCurrencyForMakerFeeXmr(preferences, xmrWalletRpcWrapper, amount, xmrConversionRateAsString);
-        return getXmrMakerFee(isCurrencyForMakerFeeXmr, amount, xmrConversionRateAsString);
-    }
-
-    /**
-     * Returns the makerFee as XmrCoin, this can be priced in XMR or BSQ.
-     *
      * @param bsqWalletService
      * @param preferences          preferences are used to see if the user indicated a preference for paying fees in BTC
      * @param amount
      * @return
      */
     @Nullable
-    public static XmrCoin getMakerFee(BsqWalletService bsqWalletService, Preferences preferences, XmrCoin amount, String xmrConversionRateAsString) {
-        boolean isCurrencyForMakerFeeXmr = isCurrencyForMakerFeeXmr(preferences, bsqWalletService, amount, xmrConversionRateAsString);
-        return getXmrMakerFee(isCurrencyForMakerFeeXmr, amount, xmrConversionRateAsString);
+    public static XmrCoin getMakerFee(BsqWalletService bsqWalletService, Preferences preferences, XmrCoin amount, String xmrConversionRateAsString, String bsqConversionRateAsString) {
+        boolean isCurrencyForMakerFeeXmr = isCurrencyForMakerFeeXmr(preferences, bsqWalletService, amount, xmrConversionRateAsString, bsqConversionRateAsString);
+        return getMakerFee(isCurrencyForMakerFeeXmr, amount, xmrConversionRateAsString);
     }
     
 
@@ -117,29 +104,8 @@ public class XmrOfferUtil {
      */
     @Nullable
     public static XmrCoin getMakerFee(boolean isCurrencyForMakerFeeXmr, @Nullable XmrCoin amount, String xmrConversionRateAsString) {
-        if (amount != null) {
-            XmrCoin feePerXmr = XmrCoinUtil.getFeePerXmr(XmrFeeService.getMakerFeePerXmr(isCurrencyForMakerFeeXmr, xmrConversionRateAsString), amount);
-            return XmrCoinUtil.maxCoin(feePerXmr, XmrFeeService.getMinMakerFee(isCurrencyForMakerFeeXmr, xmrConversionRateAsString));
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * Calculates the maker fee for the given amount, marketPrice and marketPriceMargin.
-     *
-     * @param isCurrencyForMakerFeeXmr
-     * @param amount
-     * @return
-     */
-    @Nullable
-    public static XmrCoin getXmrMakerFee(boolean isCurrencyForMakerFeeXmr, @Nullable XmrCoin amount, String xmrConversionRateAsString) {
-        if (amount != null) {
-            XmrCoin feePerXmr = XmrCoinUtil.getFeePerXmr(XmrFeeService.getMakerFeePerXmr(isCurrencyForMakerFeeXmr, xmrConversionRateAsString), amount);
-            return XmrCoinUtil.maxCoin(feePerXmr, XmrFeeService.getMinMakerFee(isCurrencyForMakerFeeXmr, xmrConversionRateAsString));
-        } else {
-            return null;
-        }
+    	Coin makerFeeBtc = OfferUtil.getMakerFee(isCurrencyForMakerFeeXmr, XmrCoin.fromXmrCoin2Coin(amount, "BTC", xmrConversionRateAsString));
+    	return makerFeeBtc != null ? XmrCoin.fromCoin2XmrCoin(makerFeeBtc, xmrConversionRateAsString) : null;
     }
 
     /**
@@ -153,26 +119,9 @@ public class XmrOfferUtil {
      */
     public static boolean isCurrencyForMakerFeeXmr(Preferences preferences,
                                                    BsqWalletService bsqWalletService,
-                                                   XmrCoin amount, String xmrConversionRateAsString) {
+                                                   XmrCoin amount, String xmrConversionRateAsString, String bsqConversionRateAsString) {
         boolean payFeeInXmr = preferences.isPayFeeInXmr();
-        boolean bsqForFeeAvailable = isBsqForMakerFeeAvailable(bsqWalletService, amount, xmrConversionRateAsString);
-        return payFeeInXmr || !bsqForFeeAvailable;
-    }
-
-    /**
-     * Checks if the maker fee should be paid in XMR, this can be the case due to user preference or because the user
-     * doesn't have enough BSQ.
-     *
-     * @param preferences
-     * @param bsqWalletService
-     * @param amount
-     * @return
-     */
-    public static boolean isCurrencyForMakerFeeXmr(Preferences preferences,
-                                                   XmrWalletRpcWrapper xmrWalletRpcWrapper,
-                                                   XmrCoin amount, String xmrConversionRateAsString) {
-        boolean payFeeInXmr = preferences.isPayFeeInXmr();
-        boolean bsqForFeeAvailable = isBsqForMakerFeeAvailable(xmrWalletRpcWrapper, amount, xmrConversionRateAsString);
+        boolean bsqForFeeAvailable = isBsqForMakerFeeAvailable(bsqWalletService, amount, xmrConversionRateAsString, bsqConversionRateAsString);
         return payFeeInXmr || !bsqForFeeAvailable;
     }
 
@@ -183,8 +132,9 @@ public class XmrOfferUtil {
      * @param amount
      * @return
      */
-    public static boolean isBsqForMakerFeeAvailable(BsqWalletService bsqWalletService, @Nullable XmrCoin amount, String xmrConversionRateAsString) {
-        XmrCoin availableBalance = XmrCoin.fromCoin2XmrCoin(bsqWalletService.getAvailableConfirmedBalance(), String.valueOf(xmrConversionRateAsString));
+    public static boolean isBsqForMakerFeeAvailable(BsqWalletService bsqWalletService, @Nullable XmrCoin amount, String xmrConversionRateAsString, String bsqConversionRateAsString) {
+    	Coin availableBalanceBsq = bsqWalletService.getAvailableConfirmedBalance();
+        XmrCoin availableBalance = XmrCoin.fromCoin2XmrCoin(availableBalanceBsq, String.valueOf(bsqConversionRateAsString));
         XmrCoin makerFee = getMakerFee(false, amount, xmrConversionRateAsString);
 
         // If we don't know yet the maker fee (amount is not set) we return true, otherwise we would disable BSQ
@@ -195,52 +145,24 @@ public class XmrOfferUtil {
         return !availableBalance.subtract(makerFee).isNegative();
     }
 
-
-    /**
-     * Checks if the available BSQ balance is sufficient to pay for the offer's maker fee.
-     *
-     * @param xmrWalletRpcWrapper
-     * @param amount
-     * @return
-     */
-    public static boolean isBsqForMakerFeeAvailable(XmrWalletRpcWrapper xmrWalletRpcWrapper, @Nullable XmrCoin amount, String xmrConversionRateAsString) {
-    	//TODO(niyid) Check for accuracy needed
-    	if(xmrWalletRpcWrapper.isXmrWalletRpcRunning()) {
-            XmrCoin availableBalance = xmrWalletRpcWrapper.getBalance();
-            XmrCoin makerFee = getMakerFee(false, amount, xmrConversionRateAsString);
-
-            // If we don't know yet the maker fee (amount is not set) we return true, otherwise we would disable BSQ
-            // fee each time we open the create offer screen as there the amount is not set.
-            if (makerFee == null)
-                return true;
-
-            return !availableBalance.subtract(makerFee).isNegative();
-    	} else {
-    		return false;
-    	}
-    }
-
     @Nullable
     public static XmrCoin getTakerFee(boolean isCurrencyForTakerFeeXmr, @Nullable XmrCoin amount, String xmrConversionRateAsString) {
-        if (amount != null) {
-            XmrCoin feePerXmr = XmrCoinUtil.getFeePerXmr(XmrFeeService.getTakerFeePerXmr(isCurrencyForTakerFeeXmr, xmrConversionRateAsString), amount);
-            return XmrCoinUtil.maxCoin(feePerXmr, XmrFeeService.getMinTakerFee(isCurrencyForTakerFeeXmr, xmrConversionRateAsString));
-        } else {
-            return null;
-        }
+    	Coin takerFeeBtc = OfferUtil.getTakerFee(isCurrencyForTakerFeeXmr, XmrCoin.fromXmrCoin2Coin(amount, "BTC", xmrConversionRateAsString));
+    	return takerFeeBtc != null ? XmrCoin.fromCoin2XmrCoin(takerFeeBtc, xmrConversionRateAsString) : null;
     }
 
     public static boolean isCurrencyForTakerFeeXmr(Preferences preferences,
                                                    BsqWalletService bsqWalletService,
-                                                   XmrCoin amount, String price) {
+                                                   XmrCoin amount, String xmrConversionRateAsString, String bsqConversionRateAsString) {
         boolean payFeeInXmr = preferences.isPayFeeInXmr();
-        boolean bsqForFeeAvailable = isBsqForTakerFeeAvailable(bsqWalletService, XmrCoin.fromXmrCoin2Coin(amount, "BSQ", String.valueOf(price)), price);
+        boolean bsqForFeeAvailable = isBsqForTakerFeeAvailable(bsqWalletService, amount, xmrConversionRateAsString, bsqConversionRateAsString);
         return payFeeInXmr || !bsqForFeeAvailable;
     }
 
-    public static boolean isBsqForTakerFeeAvailable(BsqWalletService bsqWalletService, @Nullable Coin amount, String xmrConversionRateAsString) {
-        Coin availableBalance = bsqWalletService.getAvailableConfirmedBalance();
-        Coin takerFee = OfferUtil.getTakerFee(false, amount);
+    public static boolean isBsqForTakerFeeAvailable(BsqWalletService bsqWalletService, @Nullable XmrCoin amount, String xmrConversionRateAsString, String bsqConversionRateAsString) {
+        Coin availableBalanceBsq = bsqWalletService.getAvailableConfirmedBalance();
+        XmrCoin availableBalance = XmrCoin.fromCoin2XmrCoin(availableBalanceBsq, String.valueOf(bsqConversionRateAsString));
+        XmrCoin takerFee = XmrOfferUtil.getTakerFee(false, amount, xmrConversionRateAsString);
 
         // If we don't know yet the maker fee (amount is not set) we return true, otherwise we would disable BSQ
         // fee each time we open the create offer screen as there the amount is not set.
@@ -330,8 +252,7 @@ public class XmrOfferUtil {
                                                             BsqFormatter bsqFormatter) {
     	MarketPrice xmrMarketPrice = priceFeedService.getMarketPrice("XMR");
     	MarketPrice bsqMarketPrice = priceFeedService.getMarketPrice("BSQ");
-
-      double bsqToXmrRate = bsqMarketPrice.getPrice() / xmrMarketPrice.getPrice();
+    	double bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
     	Coin makerFee = XmrCoin.fromXmrCoin2Coin(xmrMakerFee, "BSQ", String.valueOf(bsqToXmrRate));
         String countryCode = preferences.getUserCountry().code;
         String userCurrencyCode = CurrencyUtil.getCurrencyByCountryCode(countryCode).getCode();
@@ -401,8 +322,8 @@ public class XmrOfferUtil {
         log.info("Using XMR Market Price of: Currency -> {}, Price -> {}, Date -> {}, External -> {}", xmrMarketPrice.getCurrencyCode(), (1.0 / xmrMarketPrice.getPrice()), Date.from(Instant.ofEpochSecond(xmrMarketPrice.getTimestampSec())), xmrMarketPrice.isExternallyProvidedPrice());
 
         MarketPrice bsqMarketPrice = priceFeedService.getMarketPrice("BSQ");
-        extraDataMap.put(OfferPayload.BSQ_TO_XMR_RATE, String.valueOf(bsqMarketPrice.getPrice() / xmrMarketPrice.getPrice()));
-        log.info("Using BSQ Market Price of: Currency -> {}, Price -> {}, Date -> {}, External -> {}, BSQ/XMR Rate -> {}", bsqMarketPrice.getCurrencyCode(), (1.0 / bsqMarketPrice.getPrice()), Date.from(Instant.ofEpochSecond(bsqMarketPrice.getTimestampSec())), bsqMarketPrice.isExternallyProvidedPrice(), (bsqMarketPrice.getPrice() / xmrMarketPrice.getPrice()));
+        extraDataMap.put(OfferPayload.BSQ_TO_XMR_RATE, String.valueOf(xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice()));
+        log.info("Using BSQ Market Price of: Currency -> {}, Price -> {}, Date -> {}, External -> {}, BSQ/XMR Rate -> {}", bsqMarketPrice.getCurrencyCode(), (1.0 / bsqMarketPrice.getPrice()), Date.from(Instant.ofEpochSecond(bsqMarketPrice.getTimestampSec())), bsqMarketPrice.isExternallyProvidedPrice(), (xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice()));
 
         return extraDataMap.isEmpty() ? null : extraDataMap;
     }

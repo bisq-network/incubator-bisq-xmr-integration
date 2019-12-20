@@ -164,7 +164,7 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
     private SimpleBooleanProperty errorPopupDisplayed;
     private ChangeListener<Boolean> amountFocusedListener, getShowWalletFundedNotificationListener;
     private InfoInputTextField volumeInfoTextField;
-    private AutoTooltipSlideToggleButton tradeFeeInBtcToggle, tradeFeeInBsqToggle;
+    private AutoTooltipSlideToggleButton tradeFeeInBtcToggle, tradeFeeInBsqToggle;//TODO(niyid) Disable
     private ChangeListener<Boolean> tradeFeeInBtcToggleListener, tradeFeeInBsqToggleListener,
             tradeFeeVisibleListener;
     

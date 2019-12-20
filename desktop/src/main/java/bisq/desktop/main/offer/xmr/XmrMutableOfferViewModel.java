@@ -508,17 +508,17 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
 
             tradeFee.set(getFormatterForMakerFee(makerFeeAsCoin).formatCoin(makerFeeAsCoin));
 
-            XmrCoin makerFeeInXmr = dataModel.getMakerFeeInXmr();
-            Optional<Volume> optionalXmrFeeInFiat = XmrOfferUtil.getFeeInUserFiatCurrency(makerFeeInXmr,
-                    true, preferences, priceFeedService, bsqFormatter);
-            String xmrFeeWithFiatAmount = DisplayUtils.getFeeWithFiatAmount(makerFeeInXmr, optionalXmrFeeInFiat, xmrFormatter);
+            Coin makerFeeInBsq = dataModel.getMakerFeeInBsq();
+            XmrCoin makerFeeInXmr = dataModel.getMakerFee();
+            Optional<Volume> optionalFeeInFiat = OfferUtil.getFeeInUserFiatCurrency(makerFeeInBsq,
+                    false, preferences, priceFeedService, bsqFormatter);
+            String xmrFeeWithFiatAmount = DisplayUtils.getFeeWithFiatAmount(makerFeeInBsq, optionalFeeInFiat, bsqFormatter);
             if (DevEnv.isDaoActivated()) {
                 tradeFeeInXmrWithFiat.set(xmrFeeWithFiatAmount);
             } else {
                 tradeFeeInXmrWithFiat.set(xmrFormatter.formatCoinWithCode(makerFeeInXmr));
             }
 
-            Coin makerFeeInBsq = dataModel.getMakerFeeInBsq();
           //TODO(niyid) XmrOfferUtil.getFeeInUserFiatCurrency
             Optional<Volume> optionalBsqFeeInFiat = OfferUtil.getFeeInUserFiatCurrency(makerFeeInBsq,
                     false, preferences, priceFeedService, bsqFormatter);
@@ -528,14 +528,15 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
             } else {
                 // Before DAO is enabled we show fee as fiat and % in second line
                 String feeInFiatAsString;
-                if (optionalXmrFeeInFiat != null && optionalXmrFeeInFiat.isPresent()) {
-                    feeInFiatAsString = DisplayUtils.formatVolumeWithCode(optionalXmrFeeInFiat.get());
+                if (optionalFeeInFiat != null && optionalFeeInFiat.isPresent()) {
+                    feeInFiatAsString = DisplayUtils.formatVolumeWithCode(optionalFeeInFiat.get());
                 } else {
                     feeInFiatAsString = Res.get("shared.na");
                 }
 
                 double amountAsLong = (double) dataModel.getAmount().get().value;
-                double makerFeeInBtcAsLong = (double) makerFeeInXmr.value;
+                Coin makerFeeInBtc = dataModel.getMakerFeeInBtc();
+                double makerFeeInBtcAsLong = (double) makerFeeInBtc.value;
                 double percent = makerFeeInBtcAsLong / amountAsLong;
 
                 tradeFeeInBsqWithFiat.set(Res.get("createOffer.tradeFee.fiatAndPercent",
@@ -614,7 +615,7 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
     boolean initWithData(OfferPayload.Direction direction, TradeCurrency tradeCurrency) {
         boolean result = dataModel.initWithData(direction, tradeCurrency);
         //TODO(niyid) PaymentAccount for Monero should natively support XmrCoin
-        double btcToXmrRate = xmrMarketPrice.getPrice() * 10_000.0; 
+        double btcToXmrRate = xmrMarketPrice.getPrice(); 
         if (dataModel.paymentAccount != null) {
         	XmrCoin coinMaxValue = dataModel.paymentAccount.getPaymentMethod().getXmrMaxTradeLimitAsCoin(dataModel.getTradeCurrencyCode().get(), btcToXmrRate);
         	log.info("Validator Max Value => {}", coinMaxValue.toFriendlyString());
@@ -697,7 +698,7 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
         if (amount.get() != null)
             amountValidationResult.set(isXmrInputValid(amount.get()));
         
-        double btcToXmrRate = xmrMarketPrice.getPrice() * 10_000.0; 
+        double btcToXmrRate = xmrMarketPrice.getPrice(); 
 
         xmrValidator.setMaxValue(dataModel.paymentAccount.getPaymentMethod().getXmrMaxTradeLimitAsCoin(dataModel.getTradeCurrencyCode().get(), btcToXmrRate));
 
@@ -990,8 +991,8 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
     }
 
     public String getBsqTradeAmount() {
-        double bsqToXmrRate = bsqMarketPrice.getPrice() / xmrMarketPrice.getPrice();
-        return xmrFormatter.formatCoinWithCode(XmrCoin.fromXmrCoin2Coin(dataModel.getAmount().get(), "BSQ", String.valueOf(bsqToXmrRate)));
+        double bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
+        return bsqFormatter.formatBSQSatoshisWithCode(XmrCoin.fromXmrCoin2Coin(dataModel.getAmount().get(), "BSQ", String.valueOf(bsqToXmrRate)).value);
     }
 
     public String getTradeAmount() {
@@ -1013,10 +1014,10 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
     }
 
     public String getBsqSecurityDepositInfo() {
-    	double bsqToXmrRate = bsqMarketPrice.getPrice() / xmrMarketPrice.getPrice();
+    	double bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
     	Coin bsqSecurityDeposit = XmrCoin.fromXmrCoin2Coin(dataModel.getSecurityDeposit(), "BSQ", String.valueOf(bsqToXmrRate));
     	Coin bsqAmount = XmrCoin.fromXmrCoin2Coin(dataModel.getAmount().get(), "BSQ", String.valueOf(bsqToXmrRate)); 
-        return bsqFormatter.formatCoinWithCode(bsqSecurityDeposit) +
+        return bsqFormatter.formatBSQSatoshisWithCode(bsqSecurityDeposit.value) +
                 GUIUtil.getPercentageOfTradeAmount(bsqSecurityDeposit, bsqAmount);
     }
 
@@ -1025,27 +1026,28 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
     }
 
     public String getBsqSecurityDepositWithCode() {
-        double bsqToXmrRate = bsqMarketPrice.getPrice() / xmrMarketPrice.getPrice();
+        double bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
 
-        return bsqFormatter.formatCoinWithCode(XmrCoin.fromXmrCoin2Coin(dataModel.getSecurityDeposit(), "BSQ", String.valueOf(bsqToXmrRate)));
+        return bsqFormatter.formatBSQSatoshisWithCode(XmrCoin.fromXmrCoin2Coin(dataModel.getSecurityDeposit(), "BSQ", String.valueOf(bsqToXmrRate)).value);
     }
 
     public String getTradeFee() {
         //TODO use last bisq market price to estimate BSQ val
-        final XmrCoin makerFeeAsCoin = dataModel.getMakerFee();
-        final String makerFee = getFormatterForMakerFee().formatCoinWithCode(makerFeeAsCoin);
+        final Coin makerFeeAsCoin = dataModel.getMakerFeeInBsq();
+        final XmrCoin makerFeeAsXmr = dataModel.getMakerFee();
+        final String makerFee = bsqFormatter.formatBSQSatoshisWithCode(makerFeeAsCoin.value);
         if (dataModel.isCurrencyForMakerFeeXmr())
-            return makerFee + GUIUtil.getPercentageOfTradeAmount(makerFeeAsCoin, dataModel.getAmount().get());
+            return makerFee + GUIUtil.getPercentageOfTradeAmount(makerFeeAsXmr, dataModel.getAmount().get());
         else
-            return makerFee + " (" + Res.get("shared.tradingFeeInBsqInfo", xmrFormatter.formatCoinWithCode(makerFeeAsCoin)) + ")";
+            return makerFee + " (" + Res.get("shared.tradingFeeInXmrInfo", xmrFormatter.formatCoinWithCode(makerFeeAsXmr)) + ")";
     }
 
     public String getBsqTradeFee() {
-        double bsqToXmrRate = bsqMarketPrice.getPrice() / xmrMarketPrice.getPrice();
-        final Coin makerFeeAsCoin = XmrCoin.fromXmrCoin2Coin(dataModel.getMakerFee(), "BSQ", String.valueOf(bsqToXmrRate));
-        final String makerFee = getFormatterForMakerFee().formatCoinWithCode(makerFeeAsCoin);
+        double bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
+        final Coin makerFeeAsCoin = dataModel.getMakerFeeInBsq();
+        final String makerFee = bsqFormatter.formatBSQSatoshisWithCode(makerFeeAsCoin.value);
             
-        return makerFee + " (" + Res.get("shared.tradingFeeInBsqInfo", bsqFormatter.formatCoinWithCode(makerFeeAsCoin)) + ")";
+        return makerFee + " (" + Res.get("shared.tradingFeeInBsqInfo", bsqFormatter.formatBSQSatoshisWithCode(makerFeeAsCoin.value)) + ")";
     }
 
     public String getMakerFeePercentage() {
@@ -1065,9 +1067,11 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
     }
 
     public String getBsqTotalToPayInfo() {
-        double bsqToXmrRate = bsqMarketPrice.getPrice() / xmrMarketPrice.getPrice();
-    	String totalBsqToPay = bsqFormatter.formatCoinWithCode(XmrCoin.fromXmrCoin2Coin(dataModel.totalToPayAsCoinProperty().get(), "BSQ", String.valueOf(bsqToXmrRate)));
-        return totalToPay + " + " + bsqFormatter.formatCoinWithCode(XmrCoin.fromXmrCoin2Coin(dataModel.getMakerFee(), "BSQ", String.valueOf(bsqToXmrRate)));
+        double bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
+        XmrCoin totalToPayXmr = dataModel.totalToPayAsCoinProperty().get();
+        Coin totalToPayBsq = XmrCoin.fromXmrCoin2Coin(totalToPayXmr, "BSQ", String.valueOf(bsqToXmrRate));
+    	String totalBsqToPay = bsqFormatter.formatBSQSatoshisWithCode(totalToPayBsq.value);
+        return totalBsqToPay + " + " + bsqFormatter.formatBSQSatoshisWithCode(dataModel.getMakerFeeInBsq().value);
     }
 
     public String getFundsStructure() {
@@ -1085,7 +1089,7 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
     public String getBsqFundsStructure() {
         String fundsStructure;
             fundsStructure = Res.get("createOffer.fundsBox.fundsStructure.BSQ",
-                    getBsqSecurityDepositWithCode(), getBsqTxFeePercentage(), bsqFormatter.formatCoinWithCode(dataModel.getMakerFeeInBsq()));
+                    getBsqSecurityDepositWithCode(), getBsqTxFeePercentage(), bsqFormatter.formatBSQSatoshisWithCode(dataModel.getMakerFeeInBsq().value));
 
             return fundsStructure;
     }
@@ -1098,10 +1102,10 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
     }
 
     public String getBsqTxFee() {
-        double bsqToXmrRate = bsqMarketPrice.getPrice() / xmrMarketPrice.getPrice();
+        double bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
         Coin txFeeAsCoin = XmrCoin.fromXmrCoin2Coin(dataModel.getTxFee(), "BSQ", String.valueOf(bsqToXmrRate));
         Coin bsqAmount = XmrCoin.fromXmrCoin2Coin(dataModel.getAmount().get(), "BSQ", String.valueOf(bsqToXmrRate)); 
-        return bsqFormatter.formatCoinWithCode(txFeeAsCoin) +
+        return bsqFormatter.formatBSQSatoshisWithCode(txFeeAsCoin.value) +
                 GUIUtil.getPercentageOfTradeAmount(txFeeAsCoin, bsqAmount);
 
     }
@@ -1112,7 +1116,7 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
     }
 
     public String getBsqTxFeePercentage() {
-        double bsqToXmrRate = bsqMarketPrice.getPrice() / xmrMarketPrice.getPrice();
+        double bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
         Coin txFeeAsCoin = XmrCoin.fromXmrCoin2Coin(dataModel.getTxFee(), "BSQ", String.valueOf(bsqToXmrRate));
         Coin amountAsCoin = XmrCoin.fromXmrCoin2Coin(dataModel.getAmount().get(), "BSQ", String.valueOf(bsqToXmrRate));
         return GUIUtil.getPercentage(txFeeAsCoin, amountAsCoin);

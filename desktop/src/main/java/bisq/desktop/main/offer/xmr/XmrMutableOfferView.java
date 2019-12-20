@@ -438,11 +438,10 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
                         model.getTotalToPayInfo(),
                         tradeAmountText,
                         model.getSecurityDepositInfo(),
-                        model.getTradeFee(),
                         model.getTxFee(),
                         model.getBsqTotalToPayInfo(),
                         model.getBsqSecurityDepositInfo(),
-                        model.getBsqTradeFee(),
+                        model.getTradeFee(),
                         model.getBsqTxFee()
                         
                 );
@@ -1113,17 +1112,16 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
     }
 
     private void showFeeOption() {
-        boolean isPreferredFeeCurrencyBtc = model.getDataModel().isPreferredFeeCurrencyXmr();
+        boolean isPreferredFeeCurrencyBtc = model.getDataModel().isPreferredFeeCurrencyXmr();//TODO(niyid) For now works; till BTC replaced by XMR
         boolean isBsqForFeeAvailable = model.getDataModel().isBsqForFeeAvailable();
         if (!isPreferredFeeCurrencyBtc && !isBsqForFeeAvailable) {
             Coin makerFee = model.getDataModel().getMakerFeeInBsq();
             String missingBsq = null;
             if (makerFee != null) {
-            	Coin requiredBsqAmount = makerFee.subtract(model.getDataModel().getBsqBalance());
-            	makerFee = requiredBsqAmount.isNegative() ? makerFee.negate() : makerFee;
+            	Coin requiredBsqAmount = model.getDataModel().getBsqBalance().subtract(makerFee);
             	double bsqToXmrRate = model.bsqMarketPrice.getPrice() / model.xmrMarketPrice.getPrice();
             	XmrCoin requiredBsqAmountInXmr = XmrCoin.fromCoin2XmrCoin(requiredBsqAmount, String.valueOf(bsqToXmrRate));
-            	log.info("showFeeOption: BSQ => {}, XMR => {}, Rate => {}, Balance => {}", requiredBsqAmount.toFriendlyString(), requiredBsqAmountInXmr.toFriendlyString(), bsqToXmrRate, model.getDataModel().getBsqBalance());
+            	log.info("showFeeOption: BSQ => {}, XMR => {}, Rate => {}, Fee => {}, Balance => {}", requiredBsqAmount.toFriendlyString().replace("BTC", "BSQ"), requiredBsqAmountInXmr.toFriendlyString(), bsqToXmrRate, makerFee.toFriendlyString().replace("BTC", "BSQ"), model.getDataModel().getBsqBalance().toFriendlyString().replace("BTC", "BSQ"));
                 missingBsq = Res.get("popup.warning.insufficientBsqFundsForXmrFeePayment", "BSQ",
                 		requiredBsqAmount.toFriendlyString().replace("BTC", "BSQ"),//Hack switching to right currency
                         xmrFormatter.formatCoinWithCode(requiredBsqAmountInXmr));

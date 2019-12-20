@@ -369,7 +369,7 @@ class XmrTakeOfferViewModel extends ActivatableWithDataModel<XmrTakeOfferDataMod
                 calculateVolume();
 
                 Price tradePrice = dataModel.tradePrice;
-                long maxTradeLimit = dataModel.getMaxTradeLimit();
+                long maxTradeLimit = dataModel.getMaxTradeLimitBtc();
                 if (dataModel.getPaymentMethod().getId().equals(PaymentMethod.HAL_CASH_ID)) {
                     XmrCoin adjustedAmountForHalCash = XmrOfferUtil.getAdjustedAmountForHalCash(dataModel.getAmount().get(),
                             tradePrice, maxTradeLimit, btcToXmrRate);
@@ -654,7 +654,7 @@ class XmrTakeOfferViewModel extends ActivatableWithDataModel<XmrTakeOfferDataMod
     private void setAmountToModel() {
         if (amount.get() != null && !amount.get().isEmpty()) {
             XmrCoin amount = DisplayUtils.parseToCoinWith12Decimals(this.amount.get(), xmrFormatter);
-            long maxTradeLimit = dataModel.getMaxTradeLimit();
+            long maxTradeLimit = dataModel.getMaxTradeLimitBtc();
             Price price = dataModel.tradePrice;
             double btcToXmrRate = xmrMarketPrice.getPrice();
             if (price != null) {
