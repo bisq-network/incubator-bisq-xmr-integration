@@ -52,6 +52,8 @@ public abstract class XmrOfferDataModel extends ActivatableDataModel {
     @Getter
     protected final ObjectProperty<XmrCoin> balance = new SimpleObjectProperty<>();
     @Getter
+    protected final ObjectProperty<Coin> balanceBsq = new SimpleObjectProperty<>();
+    @Getter
     protected final ObjectProperty<XmrCoin> missingCoin = new SimpleObjectProperty<>(XmrCoin.ZERO);
     @Getter
     protected final BooleanProperty showWalletFundedNotification = new SimpleBooleanProperty();
@@ -79,6 +81,7 @@ public abstract class XmrOfferDataModel extends ActivatableDataModel {
         bsqMarketPrice = priceFeedService.getMarketPrice("BSQ");
         bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
         Coin bsqBalance = bsqWalletService.getAvailableConfirmedBalance();
+        balanceBsq.set(bsqBalance);
         totalAvailableBalance = XmrCoin.fromCoin2XmrCoin(bsqBalance, String.valueOf(bsqToXmrRate));
 //        log.info("Trade Wallet Balance => {} ({}) Rate={}", totalAvailableBalance.toFriendlyString(), bsqFormatter.formatAmountWithGroupSeparatorAndCode(bsqBalance), bsqToXmrRate);
     }

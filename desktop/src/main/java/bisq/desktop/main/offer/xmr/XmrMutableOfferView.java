@@ -146,8 +146,8 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
     private InputTextField marketBasedPriceTextField;
     protected InputTextField amountTextField, minAmountTextField, volumeTextField, buyerSecurityDepositInputTextField;
     private TextField currencyTextField;
-    private XmrAddressTextField XmrAddressTextField;
-    private XmrBalanceTextField XmrBalanceTextField;
+    private XmrAddressTextField xmrAddressTextField;
+    private XmrBalanceTextField xmrBalanceTextField;
     private FundsTextField totalToPayTextField;
     private Label amountDescriptionLabel, priceCurrencyLabel, priceDescriptionLabel, volumeDescriptionLabel,
             waitingForFundsLabel, marketBasedPriceLabel, percentagePriceDescription, tradeFeeDescriptionLabel,
@@ -162,7 +162,7 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
             priceAsPercentageValueCurrencyBox, volumeValueCurrencyBox, priceValueCurrencyBox,
             minAmountValueCurrencyBox, advancedOptionsBox, paymentGroupBox;
 
-    private Subscription isWaitingForFundsSubscription, balanceSubscription, cancelButton2StyleSubscription;
+    private Subscription isWaitingForFundsSubscription, balanceSubscription, balanceSubscriptionBsq, cancelButton2StyleSubscription;
     private ChangeListener<Boolean> amountFocusedListener, minAmountFocusedListener, volumeFocusedListener,
             buyerSecurityDepositFocusedListener, priceFocusedListener, placeOfferCompletedListener,
             priceAsPercentageFocusedListener, getShowWalletFundedNotificationListener,
@@ -215,7 +215,7 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
 
         createListeners();
 
-        XmrBalanceTextField.setFormatter(model.getBtcFormatter());
+        xmrBalanceTextField.setFormatter(model.getXmrFormatter());
 
         paymentAccountsComboBox.setConverter(GUIUtil.getPaymentAccountsComboBoxStringConverter());
         paymentAccountsComboBox.setButtonCell(GUIUtil.getComboBoxButtonCell(Res.get("shared.selectTradingAccount"),
@@ -252,8 +252,8 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
 
             //directionLabel.setText(model.getDirectionLabel());
             amountDescriptionLabel.setText(model.getAmountDescription());
-            XmrAddressTextField.setAddress(model.getAddressAsString());
-            XmrAddressTextField.setPaymentLabel(model.getPaymentLabel());
+            xmrAddressTextField.setAddress(model.getAddressAsString());
+            xmrAddressTextField.setPaymentLabel(model.getPaymentLabel());
 
             paymentAccountsComboBox.setItems(model.getDataModel().getPaymentAccounts());
             paymentAccountsComboBox.getSelectionModel().select(model.getPaymentAccount());
@@ -261,7 +261,7 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
 
             onPaymentAccountsComboBoxSelected();
 
-            XmrBalanceTextField.setTargetAmount(model.getDataModel().totalToPayAsCoinProperty().get());
+            xmrBalanceTextField.setTargetAmount(model.getDataModel().totalToPayAsCoinProperty().get());
             updatePriceToggle();
 
             boolean currencyForMakerFeeXmr = model.getDataModel().isCurrencyForMakerFeeXmr();
@@ -379,6 +379,7 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
                             .show(offer);
                 } else {
                     balanceSubscription.unsubscribe();
+                    balanceSubscriptionBsq.unsubscribe();
                     model.onPlaceOffer(offer, () -> {
                     });
                 }
@@ -464,7 +465,7 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
 
         updateOfferElementsStyle();
 
-        XmrBalanceTextField.setTargetAmount(model.getDataModel().totalToPayAsCoinProperty().get());
+        xmrBalanceTextField.setTargetAmount(model.getDataModel().totalToPayAsCoinProperty().get());
 
         //noinspection PointlessBooleanExpression
         if (!DevEnv.isDevMode()) {
@@ -481,9 +482,9 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
 
         payFundsTitledGroupBg.setVisible(true);
         totalToPayTextField.setVisible(true);
-        XmrAddressTextField.setVisible(true);
+        xmrAddressTextField.setVisible(true);
         qrCodeImageView.setVisible(true);
-        XmrBalanceTextField.setVisible(true);
+        xmrBalanceTextField.setVisible(true);
         cancelButton2.setVisible(true);
 
         final byte[] imageBytes = QRCode
@@ -595,7 +596,7 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
         volumeTextField.textProperty().bindBidirectional(model.volume);
         volumeTextField.promptTextProperty().bind(model.volumePromptLabel);
         totalToPayTextField.textProperty().bind(model.totalToPay);
-        XmrAddressTextField.amountAsCoinProperty().bind(model.getDataModel().getMissingCoin());
+        xmrAddressTextField.amountAsCoinProperty().bind(model.getDataModel().getMissingCoin());
         buyerSecurityDepositInputTextField.textProperty().bindBidirectional(model.buyerSecurityDeposit);
         buyerSecurityDepositLabel.textProperty().bind(model.buyerSecurityDepositLabel);
         tradeFeeInXmrLabel.textProperty().bind(model.tradeFeeInXmrWithFiat);
@@ -646,7 +647,7 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
         volumeTextField.textProperty().unbindBidirectional(model.volume);
         volumeTextField.promptTextProperty().unbindBidirectional(model.volume);
         totalToPayTextField.textProperty().unbind();
-        XmrAddressTextField.amountAsCoinProperty().unbind();
+        xmrAddressTextField.amountAsCoinProperty().unbind();
         buyerSecurityDepositInputTextField.textProperty().unbindBidirectional(model.buyerSecurityDeposit);
         buyerSecurityDepositLabel.textProperty().unbind();
         tradeFeeInXmrLabel.textProperty().unbind();
@@ -696,7 +697,8 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
         cancelButton2StyleSubscription = EasyBind.subscribe(placeOfferButton.visibleProperty(),
                 isVisible -> cancelButton2.setId(isVisible ? "cancel-button" : null));
 
-        balanceSubscription = EasyBind.subscribe(model.getDataModel().getBalance(), XmrBalanceTextField::setBalance);
+        balanceSubscription = EasyBind.subscribe(model.getDataModel().getBalance(), xmrBalanceTextField::setBalance);
+        balanceSubscriptionBsq = EasyBind.subscribe(model.getDataModel().getBalanceBsq(), xmrBalanceTextField::setBalanceBsq);
     }
 
     private void removeSubscriptions() {
@@ -1195,13 +1197,13 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
         GridPane.setMargin(qrCodeImageView, new Insets(Layout.FIRST_ROW_DISTANCE - 9, 0, 0, 10));
         gridPane.getChildren().add(qrCodeImageView);
 
-        XmrAddressTextField = addXmrAddressTextField(gridPane, ++gridRow,
+        xmrAddressTextField = addXmrAddressTextField(gridPane, ++gridRow,
                 Res.get("shared.tradeWalletAddress"));
-        XmrAddressTextField.setVisible(false);
+        xmrAddressTextField.setVisible(false);
 
-        XmrBalanceTextField = addXmrBalanceTextField(gridPane, ++gridRow,
+        xmrBalanceTextField = addXmrBalanceTextField(gridPane, ++gridRow,
                 Res.get("shared.tradeWalletBalance"));
-        XmrBalanceTextField.setVisible(false);
+        xmrBalanceTextField.setVisible(false);
 
         fundingHBox = new HBox();
         fundingHBox.setVisible(false);

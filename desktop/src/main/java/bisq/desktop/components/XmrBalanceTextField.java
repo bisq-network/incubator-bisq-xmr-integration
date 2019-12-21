@@ -17,6 +17,7 @@
 
 package bisq.desktop.components;
 
+import bisq.core.util.BsqFormatter;
 import bisq.core.util.XmrBSFormatter;
 import bisq.core.xmr.XmrCoin;
 
@@ -27,9 +28,15 @@ import javafx.scene.effect.DropShadow;
 import javafx.scene.effect.Effect;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
+import lombok.extern.slf4j.Slf4j;
+
+import java.math.BigDecimal;
 
 import javax.annotation.Nullable;
 
+import org.bitcoinj.core.Coin;
+
+@Slf4j
 public class XmrBalanceTextField extends AnchorPane {
 
     private XmrCoin targetAmount;
@@ -39,6 +46,10 @@ public class XmrBalanceTextField extends AnchorPane {
     private XmrBSFormatter formatter;
     @Nullable
     private XmrCoin balance;
+    @Nullable
+    private Coin balanceBsq;
+    
+    private BsqFormatter bsqFormatter = new BsqFormatter();
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -66,23 +77,43 @@ public class XmrBalanceTextField extends AnchorPane {
     public void setBalance(XmrCoin balance) {
         this.balance = balance;
 
-        updateBalance(balance);
+        updateBalance();
+    }
+
+    public void setBalanceBsq(Coin balanceBsq) {
+        this.balanceBsq = balanceBsq;
+
+        updateBalance();
     }
 
     public void setTargetAmount(XmrCoin targetAmount) {
         this.targetAmount = targetAmount;
 
-        if (this.balance != null)
-            updateBalance(balance);
+        if (this.balance != null && this.balanceBsq != null)
+            updateBalance();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Private methods
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private void updateBalance(XmrCoin balance) {
-        if (formatter != null)
-            textField.setText(formatter.formatCoinWithCode(balance));
+    private void updateBalance() {
+        if (formatter != null) {
+        	BigDecimal hackedBalance = new BigDecimal(balance.value);
+        	log.info("updateBalance - BSQ => {}, XMR => {}", balanceBsq, balance);
+        	hackedBalance = hackedBalance.multiply(new BigDecimal(1_000_000));//TODO(niyid) Same BSQ-to-XMR 6-decimal shift hack.
+        	
+        	String bsqBalanceString = "";
+        	if(balanceBsq != null) {
+            	bsqBalanceString = bsqFormatter.formatBSQSatoshisWithCode(balanceBsq.value);
+        	}
+        	String xmrBalanceString = "";
+        	if(balance != null) {
+            	xmrBalanceString = formatter.formatCoinWithCode(XmrCoin.valueOf(hackedBalance.longValue()));
+        	}
+        	       	
+            textField.setText(bsqBalanceString + " (" + xmrBalanceString + ")");
+        }
 
         //TODO: replace with new validation logic
 //        if (targetAmount != null) {

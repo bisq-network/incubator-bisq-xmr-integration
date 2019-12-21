@@ -978,7 +978,7 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
                 .show();
     }
 
-    XmrBSFormatter getBtcFormatter() {
+    XmrBSFormatter getXmrFormatter() {
         return xmrFormatter;
     }
 

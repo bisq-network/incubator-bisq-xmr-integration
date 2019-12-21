@@ -338,6 +338,8 @@ public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializabl
     	coin = coin != null ? coin : Coin.ZERO;
     	BigDecimal coinBigDecimal = new BigDecimal(coin.getValue());
     	BigDecimal xmrCoinBigDecimal = coinBigDecimal.multiply(rate, MATH_CONTEXT);
+    	//TODO(niyid) Handle conversion for BSQ with factor multiplier
+//    	BigDecimal bsqFactor = "BSQ".equals(currencyCode) ? new BigDecimal(1_000_000) : BigDecimal.ONE;//For BSQ, the scale/precision must be adjusted
     	BigDecimal rounded = xmrCoinBigDecimal.multiply(new BigDecimal(10_000)).round(new MathContext(SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN));
     	
     	return XmrCoin.valueOf(rounded.longValue());
