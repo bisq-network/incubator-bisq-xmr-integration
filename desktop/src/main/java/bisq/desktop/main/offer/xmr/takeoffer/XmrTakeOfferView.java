@@ -928,11 +928,12 @@ public class XmrTakeOfferView extends ActivatableViewAndModel<AnchorPane, XmrTak
         boolean isBsqForFeeAvailable = model.dataModel.isBsqForFeeAvailable();
         //Force BSQ fee option if isPreferredFeeCurrencyXmr is true
         if (isPreferredFeeCurrencyXmr && !isBsqForFeeAvailable) {
-            Coin takerFee = XmrCoin.fromXmrCoin2Coin(model.dataModel.getTakerFee(false), "BSQ", model.getOffer().getExtraDataMap().get(OfferPayload.BSQ_TO_XMR_RATE));
+        	String bsqToXmrExchangeRate = model.getOffer().getExtraDataMap().get(OfferPayload.BSQ_TO_XMR_RATE);
+            Coin takerFee = XmrCoin.fromXmrCoin2Coin(model.dataModel.getTakerFee(false), "BSQ", bsqToXmrExchangeRate);
             String missingBsq = null;
             if (takerFee != null) {
             	Coin bsqAmount = takerFee.subtract(model.dataModel.getBsqBalance());
-            	XmrCoin bsqAmountInXmr = XmrCoin.fromCoin2XmrCoin(bsqAmount, model.getOffer().getExtraDataMap().get(OfferPayload.BSQ_TO_XMR_RATE));
+            	XmrCoin bsqAmountInXmr = XmrCoin.fromCoin2XmrCoin(bsqAmount, "BSQ", bsqToXmrExchangeRate);
                 missingBsq = Res.get("popup.warning.insufficientBsqFundsForXmrFeePayment", "BSQ",
                         bsqFormatter.formatCoinWithCode(bsqAmount),
                         formatter.formatCoinWithCode(bsqAmountInXmr));

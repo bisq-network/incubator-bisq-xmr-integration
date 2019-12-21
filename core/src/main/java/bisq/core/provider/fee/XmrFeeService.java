@@ -68,24 +68,21 @@ public class XmrFeeService {
 
     //TODO(niyid) Replaced daoStateService.getParamValueAsCoin(parm, periodService.getChainHeight())
     //TODO(niyid) getFeeFromParamAsCoin for XMR does not work with Bisq Blockchain. Use block height to calculate fee rather than use default?
-    private static XmrCoin getFeeFromParamAsCoin(Param parm, String xmrConversionRate) {
-        return daoStateService != null && periodService != null ? XmrCoin.fromCoin2XmrCoin(daoStateService.getParamValueAsCoin(parm, periodService.getChainHeight()), String.valueOf(xmrConversionRate)) : XmrCoin.ZERO;
+    private static XmrCoin getFeeFromParamAsCoin(Param parm, boolean currencyForFeeIsXmr, String xmrConversionRate) {
+    	String currencyCode = currencyForFeeIsXmr ? "BTC" : "BSQ";
+        return daoStateService != null && periodService != null ? XmrCoin.fromCoin2XmrCoin(daoStateService.getParamValueAsCoin(parm, periodService.getChainHeight()), currencyCode, xmrConversionRate) : XmrCoin.ZERO;
     }
 
-    public static XmrCoin getMakerFeePerXmr(boolean currencyForFeeIsXmr, String xmrConversionRate) {
-        return currencyForFeeIsXmr ? getFeeFromParamAsCoin(Param.DEFAULT_MAKER_FEE_BTC, xmrConversionRate) : getFeeFromParamAsCoin(Param.DEFAULT_MAKER_FEE_BSQ, xmrConversionRate);
+    public static XmrCoin getMinMakerFee(boolean currencyForFeeIsXmr, String xmrConversionRate) {
+        return currencyForFeeIsXmr ? getFeeFromParamAsCoin(Param.MIN_MAKER_FEE_BTC, currencyForFeeIsXmr, xmrConversionRate) : getFeeFromParamAsCoin(Param.MIN_MAKER_FEE_BSQ, currencyForFeeIsXmr, xmrConversionRate);
     }
 
-    public static XmrCoin getMinMakerFee(boolean currencyForFeeIsXmr, String price) {
-        return currencyForFeeIsXmr ? getFeeFromParamAsCoin(Param.MIN_MAKER_FEE_BTC, price) : getFeeFromParamAsCoin(Param.MIN_MAKER_FEE_BSQ, price);
+    public static XmrCoin getTakerFeePerXmr(boolean currencyForFeeIsXmr, String xmrConversionRate) {
+        return currencyForFeeIsXmr ? getFeeFromParamAsCoin(Param.DEFAULT_TAKER_FEE_BTC, currencyForFeeIsXmr, xmrConversionRate) : getFeeFromParamAsCoin(Param.DEFAULT_TAKER_FEE_BSQ, currencyForFeeIsXmr, xmrConversionRate);
     }
 
-    public static XmrCoin getTakerFeePerXmr(boolean currencyForFeeIsXmr, String price) {
-        return currencyForFeeIsXmr ? getFeeFromParamAsCoin(Param.DEFAULT_TAKER_FEE_BTC, price) : getFeeFromParamAsCoin(Param.DEFAULT_TAKER_FEE_BSQ, price);
-    }
-
-    public static XmrCoin getMinTakerFee(boolean currencyForFeeIsXmr, String price) {
-        return currencyForFeeIsXmr ? getFeeFromParamAsCoin(Param.MIN_TAKER_FEE_BTC, price) : getFeeFromParamAsCoin(Param.MIN_TAKER_FEE_BSQ, price);
+    public static XmrCoin getMinTakerFee(boolean currencyForFeeIsXmr, String xmrConversionRate) {
+        return currencyForFeeIsXmr ? getFeeFromParamAsCoin(Param.MIN_TAKER_FEE_BTC, currencyForFeeIsXmr, xmrConversionRate) : getFeeFromParamAsCoin(Param.MIN_TAKER_FEE_BSQ, currencyForFeeIsXmr, xmrConversionRate);
     }
 
 
