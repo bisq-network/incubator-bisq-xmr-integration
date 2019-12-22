@@ -237,7 +237,8 @@ public class DisplayUtils {
                                       boolean decimalAligned,
                                       int maxPlaces,
                                       XmrBSFormatter bsFormatter) {
-        String formattedAmount = offer.isRange() ? bsFormatter.formatCoin(XmrCoin.fromCoin2XmrCoin(offer.getMinAmount(), offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)), decimalPlaces) + BSFormatter.RANGE_SEPARATOR + bsFormatter.formatCoin(XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)), decimalPlaces) : bsFormatter.formatCoin(XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)), decimalPlaces);
+    	String btcToXmrExchangeRate = offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE);
+        String formattedAmount = offer.isRange() ? bsFormatter.formatCoin(XmrCoin.fromCoin2XmrCoin(offer.getMinAmount(), "BTC", btcToXmrExchangeRate), decimalPlaces) + BSFormatter.RANGE_SEPARATOR + bsFormatter.formatCoin(XmrCoin.fromCoin2XmrCoin(offer.getAmount(), "BTC", btcToXmrExchangeRate), decimalPlaces) : bsFormatter.formatCoin(XmrCoin.fromCoin2XmrCoin(offer.getAmount(), "BTC", btcToXmrExchangeRate), decimalPlaces);
 
         if (decimalAligned) {
             formattedAmount = BSFormatter.fillUpPlacesWithEmptyStrings(formattedAmount, maxPlaces);

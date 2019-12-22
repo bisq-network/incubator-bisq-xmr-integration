@@ -1061,7 +1061,7 @@ public class XmrOfferBookView extends ActivatableViewAndModel<GridPane, XmrOffer
 
     private AutoTooltipTableColumn<XmrOfferBookListItem, XmrOfferBookListItem> getSigningStateColumn() {
     	double btcToXmrRate = model.xmrMarketPrice.getPrice();
-    	XmrCoin toleratedSmallTradeAmount = XmrCoin.fromCoin2XmrCoin(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, String.valueOf(btcToXmrRate));
+    	XmrCoin toleratedSmallTradeAmount = XmrCoin.fromCoin2XmrCoin(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, "BTC", String.valueOf(btcToXmrRate));
         AutoTooltipTableColumn<XmrOfferBookListItem, XmrOfferBookListItem> column = new AutoTooltipTableColumn<>(
                 Res.get("offerbook.timeSinceSigning"),
                 Res.get("offerbook.timeSinceSigning.help",

@@ -451,7 +451,7 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
         log.info("estimateTxSize - reservedFundsForOffer => {},  reservedFundsForOfferBtc => {}, makerFeeBtc => {}", reservedFundsForOffer, reservedFundsForOfferBtc, makerFeeBtc);
         Tuple2<Coin, Integer> estimatedFeeAndTxSize = txFeeEstimationService.getEstimatedFeeAndTxSizeForMaker(reservedFundsForOfferBtc,
                 makerFeeBtc);
-        txFeeFromXmrFeeService = XmrCoin.fromCoin2XmrCoin(estimatedFeeAndTxSize.first, xmrExchangeRate);
+        txFeeFromXmrFeeService = XmrCoin.fromCoin2XmrCoin(estimatedFeeAndTxSize.first, "BTC", xmrExchangeRate);
         feeTxSize = estimatedFeeAndTxSize.second;
     }
 
@@ -462,9 +462,6 @@ public abstract class XmrMutableOfferDataModel extends XmrOfferDataModel impleme
         if (!isBuyOffer())
             reservedFundsForOffer = reservedFundsForOffer.add(amount.get());
 
-        //TODO(niyid) Here the reserved funds for offer could be in BSQ from the BSQ wallet but reserved funds are actually in BTC
-        //TODO(niyid) useSavingsWallet should be true
-        //TODO(niyid) pass XMR-to-BTC conversion rate
         openOfferManager.placeOffer(offer,
                 XmrCoin.fromXmrCoin2Coin(reservedFundsForOffer, "BTC", String.valueOf(xmrMarketPrice.getPrice())),
                 useSavingsWallet,

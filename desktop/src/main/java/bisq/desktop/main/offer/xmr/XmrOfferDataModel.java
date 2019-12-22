@@ -82,7 +82,7 @@ public abstract class XmrOfferDataModel extends ActivatableDataModel {
         bsqToXmrRate = xmrMarketPrice.getPrice() / bsqMarketPrice.getPrice();
         Coin bsqBalance = bsqWalletService.getAvailableConfirmedBalance();
         balanceBsq.set(bsqBalance);
-        totalAvailableBalance = XmrCoin.fromCoin2XmrCoin(bsqBalance, String.valueOf(bsqToXmrRate));
+        totalAvailableBalance = XmrCoin.fromCoin2XmrCoin(bsqBalance, "BSQ", String.valueOf(bsqToXmrRate));
 //        log.info("Trade Wallet Balance => {} ({}) Rate={}", totalAvailableBalance.toFriendlyString(), bsqFormatter.formatAmountWithGroupSeparatorAndCode(bsqBalance), bsqToXmrRate);
     }
 

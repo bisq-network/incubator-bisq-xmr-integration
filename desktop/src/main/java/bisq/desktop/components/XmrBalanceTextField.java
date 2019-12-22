@@ -99,17 +99,13 @@ public class XmrBalanceTextField extends AnchorPane {
 
     private void updateBalance() {
         if (formatter != null) {
-        	BigDecimal hackedBalance = new BigDecimal(balance.value);
-        	log.info("updateBalance - BSQ => {}, XMR => {}", balanceBsq, balance);
-        	hackedBalance = hackedBalance.multiply(new BigDecimal(1_000_000));//TODO(niyid) Same BSQ-to-XMR 6-decimal shift hack.
-        	
         	String bsqBalanceString = "";
         	if(balanceBsq != null) {
             	bsqBalanceString = bsqFormatter.formatBSQSatoshisWithCode(balanceBsq.value);
         	}
         	String xmrBalanceString = "";
         	if(balance != null) {
-            	xmrBalanceString = formatter.formatCoinWithCode(XmrCoin.valueOf(hackedBalance.longValue()));
+            	xmrBalanceString = formatter.formatCoinWithCode(balance);
         	}
         	       	
             textField.setText(bsqBalanceString + " (" + xmrBalanceString + ")");

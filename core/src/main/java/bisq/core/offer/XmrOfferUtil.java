@@ -105,7 +105,7 @@ public class XmrOfferUtil {
     @Nullable
     public static XmrCoin getMakerFee(boolean isCurrencyForMakerFeeXmr, @Nullable XmrCoin amount, String xmrConversionRateAsString) {
     	Coin makerFeeBtc = OfferUtil.getMakerFee(isCurrencyForMakerFeeXmr, XmrCoin.fromXmrCoin2Coin(amount, "BTC", xmrConversionRateAsString));
-    	return makerFeeBtc != null ? XmrCoin.fromCoin2XmrCoin(makerFeeBtc, xmrConversionRateAsString) : null;
+    	return makerFeeBtc != null ? XmrCoin.fromCoin2XmrCoin(makerFeeBtc, "BTC", xmrConversionRateAsString) : null;
     }
 
     /**
@@ -134,7 +134,7 @@ public class XmrOfferUtil {
      */
     public static boolean isBsqForMakerFeeAvailable(BsqWalletService bsqWalletService, @Nullable XmrCoin amount, String xmrConversionRateAsString, String bsqConversionRateAsString) {
     	Coin availableBalanceBsq = bsqWalletService.getAvailableConfirmedBalance();
-        XmrCoin availableBalance = XmrCoin.fromCoin2XmrCoin(availableBalanceBsq, String.valueOf(bsqConversionRateAsString));
+        XmrCoin availableBalance = XmrCoin.fromCoin2XmrCoin(availableBalanceBsq, "BSQ", String.valueOf(bsqConversionRateAsString));
         XmrCoin makerFee = getMakerFee(false, amount, xmrConversionRateAsString);
 
         // If we don't know yet the maker fee (amount is not set) we return true, otherwise we would disable BSQ
@@ -148,7 +148,7 @@ public class XmrOfferUtil {
     @Nullable
     public static XmrCoin getTakerFee(boolean isCurrencyForTakerFeeXmr, @Nullable XmrCoin amount, String xmrConversionRateAsString) {
     	Coin takerFeeBtc = OfferUtil.getTakerFee(isCurrencyForTakerFeeXmr, XmrCoin.fromXmrCoin2Coin(amount, "BTC", xmrConversionRateAsString));
-    	return takerFeeBtc != null ? XmrCoin.fromCoin2XmrCoin(takerFeeBtc, xmrConversionRateAsString) : null;
+    	return takerFeeBtc != null ? XmrCoin.fromCoin2XmrCoin(takerFeeBtc, "BTC", xmrConversionRateAsString) : null;
     }
 
     public static boolean isCurrencyForTakerFeeXmr(Preferences preferences,
@@ -161,7 +161,7 @@ public class XmrOfferUtil {
 
     public static boolean isBsqForTakerFeeAvailable(BsqWalletService bsqWalletService, @Nullable XmrCoin amount, String xmrConversionRateAsString, String bsqConversionRateAsString) {
         Coin availableBalanceBsq = bsqWalletService.getAvailableConfirmedBalance();
-        XmrCoin availableBalance = XmrCoin.fromCoin2XmrCoin(availableBalanceBsq, String.valueOf(bsqConversionRateAsString));
+        XmrCoin availableBalance = XmrCoin.fromCoin2XmrCoin(availableBalanceBsq, "BSQ", String.valueOf(bsqConversionRateAsString));
         XmrCoin takerFee = XmrOfferUtil.getTakerFee(false, amount, xmrConversionRateAsString);
 
         // If we don't know yet the maker fee (amount is not set) we return true, otherwise we would disable BSQ
@@ -230,7 +230,7 @@ public class XmrOfferUtil {
     @VisibleForTesting
     static XmrCoin getAdjustedAmount(XmrCoin amount, Price price, long maxTradeLimit, int factor, double xmrToBtcRate) {
     	Coin btcAmount = XmrCoin.fromXmrCoin2Coin(amount, "BTC", String.valueOf(xmrToBtcRate));
-    	XmrCoin coin = XmrCoin.fromCoin2XmrCoin(OfferUtil.getAdjustedAmount(btcAmount, price, maxTradeLimit, factor), String.valueOf(xmrToBtcRate));
+    	XmrCoin coin = XmrCoin.fromCoin2XmrCoin(OfferUtil.getAdjustedAmount(btcAmount, price, maxTradeLimit, factor), "BTC", String.valueOf(xmrToBtcRate));
 
     	return coin;
     }

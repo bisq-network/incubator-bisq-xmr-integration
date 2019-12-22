@@ -330,17 +330,18 @@ public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializabl
     /**
      * 
      * @param coin
+     * @param currencyCode
      * @param xmrConversionRateAsString
      * @return
      */
-    public static XmrCoin fromCoin2XmrCoin(Coin coin, String xmrConversionRateAsString) {
+    public static XmrCoin fromCoin2XmrCoin(Coin coin, String currencyCode, String xmrConversionRateAsString) {
     	BigDecimal rate = obtainRateAsBigDecimal(xmrConversionRateAsString);
     	coin = coin != null ? coin : Coin.ZERO;
     	BigDecimal coinBigDecimal = new BigDecimal(coin.getValue());
     	BigDecimal xmrCoinBigDecimal = coinBigDecimal.multiply(rate, MATH_CONTEXT);
     	//TODO(niyid) Handle conversion for BSQ with factor multiplier
-//    	BigDecimal bsqFactor = "BSQ".equals(currencyCode) ? new BigDecimal(1_000_000) : BigDecimal.ONE;//For BSQ, the scale/precision must be adjusted
-    	BigDecimal rounded = xmrCoinBigDecimal.multiply(new BigDecimal(10_000)).round(new MathContext(SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN));
+    	BigDecimal bsqFactor = "BSQ".equals(currencyCode) ? new BigDecimal(1_000_000) : BigDecimal.ONE;//For BSQ, the scale/precision must be adjusted
+    	BigDecimal rounded = xmrCoinBigDecimal.multiply(bsqFactor).multiply(new BigDecimal(10_000)).round(new MathContext(SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN));
     	
     	return XmrCoin.valueOf(rounded.longValue());
     }
@@ -358,7 +359,7 @@ public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializabl
     	BigDecimal xmrCoinBigDecimal = new BigDecimal(coin.getValue());
     	BigDecimal coinBigDecimal = xmrCoinBigDecimal.divide(rate, MATH_CONTEXT);
     	BigDecimal bsqFactor = "BSQ".equals(currencyCode) ? new BigDecimal(0.000_001) : BigDecimal.ONE;//For BSQ, the scale/precision must be adjusted
-    	BigDecimal rounded = coinBigDecimal.multiply(bsqFactor).multiply(new BigDecimal(0.00_001)).round(new MathContext(Coin.SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN));
+    	BigDecimal rounded = coinBigDecimal.multiply(bsqFactor).multiply(new BigDecimal(0.0_001)).round(new MathContext(Coin.SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN));
     	return Coin.valueOf(rounded.longValue());
     }
 }

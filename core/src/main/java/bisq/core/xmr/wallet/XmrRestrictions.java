@@ -30,7 +30,7 @@ import org.bitcoinj.core.Coin;
 
 public class XmrRestrictions {
     public static XmrCoin getMinNonDustOutput(double xmrToBtcRate) {
-    	return XmrCoin.fromCoin2XmrCoin(Restrictions.getMinNonDustOutput(), String.valueOf(xmrToBtcRate));
+    	return XmrCoin.fromCoin2XmrCoin(Restrictions.getMinNonDustOutput(), "BTC", String.valueOf(xmrToBtcRate));
     }
 
     private static XmrCoin minNonDustOutput;
@@ -45,7 +45,7 @@ public class XmrRestrictions {
 
     public static XmrCoin getMinTradeAmount(double xmrToBtcRate) {
     	Coin coin = Restrictions.getMinTradeAmount();
-    	return XmrCoin.fromCoin2XmrCoin(coin, String.valueOf(xmrToBtcRate));
+    	return XmrCoin.fromCoin2XmrCoin(coin, "BTC", String.valueOf(xmrToBtcRate));
     }
 
     public static double getDefaultBuyerSecurityDepositAsPercent(@Nullable PaymentAccount paymentAccount) {
@@ -73,7 +73,7 @@ public class XmrRestrictions {
     // So 0.0005 BTC is the min. buyer security deposit even with amount of 0.0001 BTC and 0.05% percentage value.
     public static XmrCoin getMinBuyerSecurityDepositAsCoin(double xmrToBtcRate) {
     	Coin coin = Restrictions.getMinBuyerSecurityDepositAsCoin();
-    	return XmrCoin.fromCoin2XmrCoin(coin, String.valueOf(xmrToBtcRate));
+    	return XmrCoin.fromCoin2XmrCoin(coin, "BTC", String.valueOf(xmrToBtcRate));
     }
 
 
@@ -83,6 +83,6 @@ public class XmrRestrictions {
 
     public static XmrCoin getMinSellerSecurityDepositAsCoin(double xmrToBtcRate) {
     	Coin coin = Restrictions.getMinSellerSecurityDepositAsCoin();
-    	return XmrCoin.fromCoin2XmrCoin(coin, String.valueOf(xmrToBtcRate));
+    	return XmrCoin.fromCoin2XmrCoin(coin, "BTC", String.valueOf(xmrToBtcRate));
     }
 }

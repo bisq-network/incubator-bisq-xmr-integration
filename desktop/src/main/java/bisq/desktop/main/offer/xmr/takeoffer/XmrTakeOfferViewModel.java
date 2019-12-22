@@ -145,7 +145,7 @@ class XmrTakeOfferViewModel extends ActivatableWithDataModel<XmrTakeOfferDataMod
     String marketPriceMargin;
     protected MarketPrice xmrMarketPrice;
     protected MarketPrice bsqMarketPrice;
-
+    private String btcToXmrExchangeRate;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
@@ -188,6 +188,7 @@ class XmrTakeOfferViewModel extends ActivatableWithDataModel<XmrTakeOfferDataMod
 
         amount.set(xmrFormatter.formatCoin(dataModel.getAmount().get()));
         showTransactionPublishedScreen.set(false);
+        btcToXmrExchangeRate = offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE);
 
         // when getting back to an open screen we want to re-check again
         isOfferAvailable.set(false);
@@ -228,7 +229,7 @@ class XmrTakeOfferViewModel extends ActivatableWithDataModel<XmrTakeOfferDataMod
             amountDescription = Res.get("takeOffer.amountPriceBox.sell.amountDescription", Trade.TradeBaseCurrency.XMR);
         }
 
-        amountRange = xmrFormatter.formatCoin(offer.getMinAmount()) + " - " + xmrFormatter.formatCoin(XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)));
+        amountRange = xmrFormatter.formatCoin(offer.getMinAmount()) + " - " + xmrFormatter.formatCoin(XmrCoin.fromCoin2XmrCoin(offer.getAmount(), "BTC", btcToXmrExchangeRate));
         price = XmrBSFormatter.formatPrice(dataModel.tradePrice);
         marketPriceMargin = XmrBSFormatter.formatToPercent(offer.getMarketPriceMargin());
         paymentLabel = Res.get("takeOffer.fundsBox.paymentLabel", offer.getShortId());
@@ -242,9 +243,9 @@ class XmrTakeOfferViewModel extends ActivatableWithDataModel<XmrTakeOfferDataMod
         offer.errorMessageProperty().addListener(offerErrorListener);
         errorMessage.set(offer.getErrorMessage());
 
-        xmrValidator.setMaxValue(XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)));
-        xmrValidator.setMaxTradeLimit(XmrCoin.valueOf(Math.min(dataModel.getMaxTradeLimit(), XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)).value)));
-        xmrValidator.setMinValue(XmrCoin.fromCoin2XmrCoin(offer.getMinAmount(), offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)));
+        xmrValidator.setMaxValue(XmrCoin.fromCoin2XmrCoin(offer.getAmount(), "BTC", btcToXmrExchangeRate));
+        xmrValidator.setMaxTradeLimit(XmrCoin.valueOf(Math.min(dataModel.getMaxTradeLimit(), XmrCoin.fromCoin2XmrCoin(offer.getAmount(), "BTC", btcToXmrExchangeRate).value)));
+        xmrValidator.setMinValue(XmrCoin.fromCoin2XmrCoin(offer.getMinAmount(), "BTC", btcToXmrExchangeRate));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -270,7 +271,7 @@ class XmrTakeOfferViewModel extends ActivatableWithDataModel<XmrTakeOfferDataMod
 
     public void onPaymentAccountSelected(PaymentAccount paymentAccount) {
         dataModel.onPaymentAccountSelected(paymentAccount);
-        xmrValidator.setMaxTradeLimit(XmrCoin.valueOf(Math.min(dataModel.getMaxTradeLimit(), XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)).value)));
+        xmrValidator.setMaxTradeLimit(XmrCoin.valueOf(Math.min(dataModel.getMaxTradeLimit(), XmrCoin.fromCoin2XmrCoin(offer.getAmount(), "BTC", btcToXmrExchangeRate).value)));
         updateButtonDisableState();
     }
 
@@ -310,7 +311,7 @@ class XmrTakeOfferViewModel extends ActivatableWithDataModel<XmrTakeOfferDataMod
             tradeFee.set(getFormatterForTakerFee().formatCoin(takerFeeAsCoin));
 
             XmrCoin makerFeeInXmr = dataModel.getTakerFeeInXmr();
-            Optional<Volume> optionalXmrFeeInFiat = XmrOfferUtil.getFeeInUserFiatCurrency(XmrCoin.fromXmrCoin2Coin(makerFeeInXmr, "BTC", offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)),
+            Optional<Volume> optionalXmrFeeInFiat = XmrOfferUtil.getFeeInUserFiatCurrency(XmrCoin.fromXmrCoin2Coin(makerFeeInXmr, "BTC", btcToXmrExchangeRate),
                     true, preferences, priceFeedService, bsqFormatter);
             String xmrFeeWithFiatAmount = DisplayUtils.getFeeWithFiatAmount(makerFeeInXmr, optionalXmrFeeInFiat, xmrFormatter);
             if (DevEnv.isDaoActivated()) {
@@ -355,7 +356,7 @@ class XmrTakeOfferViewModel extends ActivatableWithDataModel<XmrTakeOfferDataMod
     // On focus out we do validation and apply the data to the model
     void onFocusOutAmountTextField(boolean oldValue, boolean newValue, String userInput) {
     	double btcToXmrRate = xmrMarketPrice.getPrice(); 
-    	XmrCoin toleratedSmallTradeAmount = XmrCoin.fromCoin2XmrCoin(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, String.valueOf(btcToXmrRate));
+    	XmrCoin toleratedSmallTradeAmount = XmrCoin.fromCoin2XmrCoin(OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT, "BTC", String.valueOf(btcToXmrRate));
         if (oldValue && !newValue) {
             InputValidator.ValidationResult result = isXmrInputValid(amount.get());
             amountValidationResult.set(result);
