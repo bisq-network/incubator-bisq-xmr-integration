@@ -59,7 +59,7 @@ class XmrEditOfferDataModel extends XmrMutableOfferDataModel {
     private final CorePersistenceProtoResolver corePersistenceProtoResolver;
     private OpenOffer openOffer;
     private OpenOffer.State initialState;
-
+    private String btcToXmrExchangeRate;
     //TODO(niyid) convert for use with XMR base
     @Inject
     XmrEditOfferDataModel(OpenOfferManager openOfferManager,
@@ -142,7 +142,7 @@ class XmrEditOfferDataModel extends XmrMutableOfferDataModel {
         // If the security deposit got bounded because it was below the coin amount limit, it can be bigger
         // by percentage than the restriction. We can't determine the percentage originally entered at offer
         // creation, so just use the default value as it doesn't matter anyway.
-        double buyerSecurityDepositPercent = XmrCoinUtil.getAsPercentPerXmr(XmrCoin.fromCoin2XmrCoin(offer.getBuyerSecurityDeposit(), offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)), XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)));
+        double buyerSecurityDepositPercent = XmrCoinUtil.getAsPercentPerXmr(XmrCoin.fromCoin2XmrCoin(offer.getBuyerSecurityDeposit(), "BTC", btcToXmrExchangeRate), XmrCoin.fromCoin2XmrCoin(offer.getAmount(), "BTC", btcToXmrExchangeRate));
         if (buyerSecurityDepositPercent > XmrRestrictions.getMaxBuyerSecurityDepositAsPercent(this.paymentAccount)
                 && offer.getBuyerSecurityDeposit().value == XmrRestrictions.getMinBuyerSecurityDepositAsCoin(1.0 / xmrMarketPrice.getPrice()).value)
             buyerSecurityDeposit.set(XmrRestrictions.getDefaultBuyerSecurityDepositAsPercent(this.paymentAccount));
@@ -171,9 +171,10 @@ class XmrEditOfferDataModel extends XmrMutableOfferDataModel {
 
     public void populateData() {
         Offer offer = openOffer.getOffer();
+        btcToXmrExchangeRate = offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE);
         // Min amount need to be set before amount as if minAmount is null it would be set by amount
-        setMinAmount(XmrCoin.fromCoin2XmrCoin(offer.getMinAmount(), offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)));
-        setAmount(XmrCoin.fromCoin2XmrCoin(offer.getAmount(), offer.getExtraDataMap().get(OfferPayload.BTC_TO_XMR_RATE)));
+        setMinAmount(XmrCoin.fromCoin2XmrCoin(offer.getMinAmount(), "BTC", btcToXmrExchangeRate));
+        setAmount(XmrCoin.fromCoin2XmrCoin(offer.getAmount(), "BTC", btcToXmrExchangeRate));
         setPrice(offer.getPrice());
         setVolume(offer.getVolume());
         setUseMarketBasedPrice(offer.isUseMarketBasedPrice());
