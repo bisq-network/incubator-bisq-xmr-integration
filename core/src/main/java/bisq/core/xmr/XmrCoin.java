@@ -31,7 +31,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializable {
 
     /**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 1L;
 
@@ -40,7 +40,7 @@ public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializabl
      * constants derive from it.
      */
     public static final int SMALLEST_UNIT_EXPONENT = 12;
-    
+
     public static MathContext MATH_CONTEXT = new MathContext(SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN);
 
     /**
@@ -84,9 +84,9 @@ public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializabl
      * Represents a monetary value of minus one satoshi.
      */
     public static final XmrCoin NEGATIVE_SATOSHI = XmrCoin.valueOf(-1);
-    
+
     /**
-     * Dust value - any amount < 0.01 XMR 
+     * Dust value - any amount < 0.01 XMR
      */
     public static final XmrCoin DUST = XmrCoin.valueOf(9999999999l);
 
@@ -316,7 +316,7 @@ public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializabl
     public int compareTo(final XmrCoin other) {
         return Longs.compare(this.value, other.value);
     }
-    
+
     private static BigDecimal obtainRateAsBigDecimal(String xmrConversionRateAsString) {
     	BigDecimal rate = BigDecimal.ONE;
     	try {
@@ -324,11 +324,11 @@ public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializabl
     	} catch (Exception e) {
     		log.error("Exception occurred: {}", xmrConversionRateAsString);
 		}
-    	
+
     	return rate;
     }
     /**
-     * 
+     *
      * @param coin
      * @param currencyCode
      * @param xmrConversionRateAsString
@@ -339,15 +339,13 @@ public final class XmrCoin implements Monetary, Comparable<XmrCoin>, Serializabl
     	coin = coin != null ? coin : Coin.ZERO;
     	BigDecimal coinBigDecimal = new BigDecimal(coin.getValue());
     	BigDecimal xmrCoinBigDecimal = coinBigDecimal.multiply(rate, MATH_CONTEXT);
-    	//TODO(niyid) Handle conversion for BSQ with factor multiplier
     	BigDecimal bsqFactor = "BSQ".equals(currencyCode) ? new BigDecimal(1_000_000) : BigDecimal.ONE;//For BSQ, the scale/precision must be adjusted
     	BigDecimal rounded = xmrCoinBigDecimal.multiply(bsqFactor).multiply(new BigDecimal(10_000)).round(new MathContext(SMALLEST_UNIT_EXPONENT, RoundingMode.DOWN));
-    	
     	return XmrCoin.valueOf(rounded.longValue());
     }
-    
+
     /**
-     * 
+     *
      * @param coin
      * @param currencyCode
      * @param xmrConversionRateAsString

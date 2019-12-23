@@ -101,7 +101,7 @@ public class XmrBalanceTextField extends AnchorPane {
         if (formatter != null) {
         	String bsqBalanceString = "";
         	if(balanceBsq != null) {
-            	bsqBalanceString = bsqFormatter.formatBSQSatoshisWithCode(balanceBsq.value);
+            	bsqBalanceString = bsqFormatter.formatCoinWithCode(balanceBsq);
         	}
         	String xmrBalanceString = "";
         	if(balance != null) {

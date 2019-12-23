@@ -692,6 +692,10 @@ public abstract class XmrMutableOfferViewModel<M extends XmrMutableOfferDataMode
         updateButtonDisableState();
         updateSpinnerInfo();
     }
+    
+    public String getOfferId() {
+    	return offer.getId();
+    }
 
     public void onPaymentAccountSelected(PaymentAccount paymentAccount) {
         dataModel.onPaymentAccountSelected(paymentAccount);
