@@ -1281,7 +1281,10 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
         cancelButton2.setVisible(false);
     }
 
-    private void openWallet() {
+  //TODO(niyid) Since deposit/fees are paid in BSQ, it should be expedient to have an API that will allow the DAO to to issue BSQ for the XMR
+  //TODO(niyid) equivalent. Thus, using this API here, the client's BSQ wallet is credited with the amount of XMR drawn from his monero-wallet-rpc
+  //TODO(niyid) wallet instance. And then the client can proceed to pay the fees and deposit in BSQ.
+    private void openWallet() { 
         try {
             Utilities.openURI(URI.create(getMoneroURI()));
         } catch (Exception ex) {
@@ -1293,7 +1296,10 @@ public abstract class XmrMutableOfferView<M extends XmrMutableOfferViewModel> ex
     @NotNull
     private String getMoneroURI() {
     	//TODO(niyid) Monero URI
-        return "";
+    	XmrCoin missingCoin = model.getDataModel().getMissingCoin().get();
+    	String xmrUri = "monero:" + model.getAddressAsString() + "??tx_amount=" + missingCoin.toFriendlyStringNoCode() + "&tx_description=Security Deposit for offer " + model.getOfferId();
+    	log.info("getMoneroURI => {}", xmrUri);
+        return xmrUri;
     }
 
     private void addAmountPriceFields() {
